@@ -19,9 +19,33 @@ namespace hls {
  */
 class Parser {
  public:
+  /**
+   * @brief Class constructor. Begin the parsing loop.
+   * @param input Input stream to be parsed.
+   */
   Parser(std::istream& input) : lexer_{input} {
     // Prime the token buffer
     next_token();
+    while (1) {
+      switch (current_token_.type()) {
+        case TokenType::tok_eof:
+          return;
+        case TokenType::tok_def:
+          handle_definition();
+          break;
+        case TokenType::tok_extern:
+          handle_extern();
+          break;
+        case TokenType::tok_operator:
+          if (current_token_.value() == ';') {
+            next_token();
+            break;
+          }
+        default:
+          handle_top_level();
+          break;
+      }
+    }
   }
 
  private:
@@ -29,6 +53,62 @@ class Parser {
   Token current_token_;
   std::map<char, int> binop_preecdence_{
       {'<', 10}, {'+', 20}, {'-', 20}, {'*', 40}};
+
+  /**
+   * @brief Parse an extern function declaration. Recovers from any internal
+   * errors by ignoring erroneous parsing and moving onto next expression.
+   */
+  void handle_extern() {
+    if (parse_extern()) {
+      std::cout << "Parsed extern." << std::endl;
+    } else {
+      next_token();
+    }
+  }
+
+  /**
+   * @brief Parse a function definition. Recovers from any internal
+   * errors by ignoring erroneous parsing and moving onto next expression.
+   */
+  void handle_definition() {
+    if (parse_definition()) {
+      std::cout << "Parsed function definition." << std::endl;
+    } else {
+      next_token();
+    }
+  }
+
+  /**
+   * @brief Parse a top-level definition. Recovers from any internal
+   * errors by ignoring erroneous parsing and moving onto next expression.
+   */
+  void handle_top_level() {
+    if (parse_top_level()) {
+      std::cout << "Parsed top-level." << std::endl;
+    } else {
+      next_token();
+    }
+  }
+
+  /**
+   * @brief Erroneous parsing for expression.
+   * @param message Message to print to stderr.
+   * @return ExprAST unique pointer that just wraps nullptr.
+   */
+  std::unique_ptr<ast::ExprAST> expr_error(const std::string& message) {
+    std::cerr << message << std::endl;
+    return nullptr;
+  }
+
+  /**
+   * @brief Erroneous parsing for prototype.
+   * @param message Message to print to stderr.
+   * @return PrototypeAST unique pointer that just wraps nullptr.
+   */
+  std::unique_ptr<ast::PrototypeAST> proto_error(const std::string& message) {
+    expr_error(message);
+    return nullptr;
+  }
 
   /**
    * @brief Retrieve the next Token from the lexer. This will be stored in
@@ -82,9 +162,12 @@ class Parser {
     next_token();
 
     auto expr = parse_expression();
-    if (!expr) return nullptr;
+    if (!expr)
+      return expr_error(
+          "Couldn't parse parentheses expression after ( character.");
 
-    if (current_token_.value() != ')') return nullptr;
+    if (current_token_.value() != ')')
+      return expr_error("No terminating ) character in parentheses expression");
     // Consume the trailing ')'
     next_token();
 
@@ -124,12 +207,14 @@ class Parser {
         if (auto arg = parse_expression())
           args.push_back(std::move(arg));
         else
-          return nullptr;
+          return expr_error("Unrecognised expression in function call.");
 
         // End of call expression, so leave the loop
         if (current_token_.val() == ')') break;
         // Only permit comma operators separating identifiers
-        if (current_token_.val() != ',') return nullptr;
+        if (current_token_.val() != ',')
+          return expr_error(
+              "Only , character is permitted between function arguments.");
 
         next_token();
       }
@@ -169,7 +254,7 @@ class Parser {
    */
   std::unique_ptr<ast::ExprAST> parse_expression() {
     auto lhs = parse_primary();
-    if (!lhs) return nullptr;
+    if (!lhs) return expr_error("Couldn't parse LHS in expression.");
 
     // Start off with a zero precedence since we've just parsed the first
     // primary in the expression
@@ -206,7 +291,7 @@ class Parser {
       // Try to retrieve the primary on the RHS of the binary operator; if there
       // isn't one there, there's something wrong (can't have a trailing binop)
       auto rhs = parse_primary();
-      if (!rhs) return nullptr;
+      if (!rhs) return expr_error("Couldn't parse RHS in binop.");
 
       // Look-ahead at the next binary operator in sequence. So far we've parsed
       // a `.` b `?`; if `?` is of lower precedence than `.`, e.g. the
@@ -223,7 +308,8 @@ class Parser {
       int next_precedence = get_token_precedence();
       if (token_precedence < next_precedence) {
         rhs = parse_binop_rhs(token_precedence + 1, std::move(rhs));
-        if (!rhs) return nullptr;
+        if (!rhs)
+          return expr_error("Couldn't find RHS in recursive binop search.");
       }
 
       lhs = std::make_unique<ast::BinaryExprAST>(binop.value(), std::move(lhs),
@@ -238,11 +324,15 @@ class Parser {
    */
   std::unique_ptr<ast::PrototypeAST> parse_prototype() {
     // Prototype must start with an identifier; eat the function name if so
-    if (current_token_.type() != TokenType::tok_identifier) return nullptr;
+    if (current_token_.type() != TokenType::tok_identifier)
+      return proto_error("Prototype must begin with an identifier.");
     std::string function_name = current_token_.value();
     next_token();
 
-    if (current_token_.value() != '(') return nullptr;
+    if (current_token_.value() != '(')
+      return proto_error(
+          "Prototype arguments must be separated from identifier by "
+          "parenthesis.");
 
     // Eat up all arguments; note that these are not comma-delimited
     std::vector<std::string> arg_names;
@@ -250,7 +340,8 @@ class Parser {
       arg_names.push_back(current_token_.value());
     }
 
-    if (current_token_.value() != ')') return nullptr;
+    if (current_token_.value() != ')')
+      return proto_error("Prototype arguments must be ended with parenthesis.");
     next_token();
 
     return std::make_unique<ast::PrototypeAST>(function_name,
@@ -269,7 +360,7 @@ class Parser {
 
     // Parse the prototype following the def
     auto proto = parse_prototye();
-    if (!proto) return nullptr;
+    if (!proto) return;
 
     // Parse the function expression and return the function AST node if we've
     // been able to retrieve a valid expression

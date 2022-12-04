@@ -230,6 +230,83 @@ class Parser {
                                                  std::move(rhs));
     }
   }
+
+  /**
+   * @brief Parse a function prototype of the form function_name(arg1, arg2,
+   * ...).
+   * @return Prototype AST node.
+   */
+  std::unique_ptr<ast::PrototypeAST> parse_prototype() {
+    // Prototype must start with an identifier; eat the function name if so
+    if (current_token_.type() != TokenType::tok_identifier) return nullptr;
+    std::string function_name = current_token_.value();
+    next_token();
+
+    if (current_token_.value() != '(') return nullptr;
+
+    // Eat up all arguments; note that these are not comma-delimited
+    std::vector<std::string> arg_names;
+    while (next_token().type() == TokenType::tok_identifier) {
+      arg_names.push_back(current_token_.value());
+    }
+
+    if (current_token_.value() != ')') return nullptr;
+    next_token();
+
+    return std::make_unique<ast::PrototypeAST>(function_name,
+                                               std::move(arg_names));
+  }
+
+  /**
+   * @brief Parse a function definition, of the form
+   * def func_name(arg1, arg2, ...) func_body. The result is a function AST node
+   * comprising a prototype and function body.
+   * @return Function definintion AST.
+   */
+  std::unique_ptr<ast::FunctionAST> parse_definition() {
+    // Eat the def keyword
+    next_token();
+
+    // Parse the prototype following the def
+    auto proto = parse_prototye();
+    if (!proto) return nullptr;
+
+    // Parse the function expression and return the function AST node if we've
+    // been able to retrieve a valid expression
+    if (auto expr = parse_expression()) {
+      return std::make_unique<ast::FunctionAST>(std::move(proto),
+                                                std::move(expr));
+    }
+
+    return nullptr;
+  }
+
+  /**
+   * @brief Parse an external function declaration of the form
+   * extern func_name(arg1, arg2, ...).
+   * @return Prototype AST.
+   */
+  std::unique_ptr<ast::PrototypeAST> parse_extern() {
+    // Eat the extern keywork
+    next_token();
+    return parse_prototype();
+  }
+
+  /**
+   * @brief Parse the entry point to the application. Interpreted as an
+   * anonymous function without name.
+   * @return Function definition AST.
+   */
+  std::unique_ptr<ast::FunctionAST> parse_top_level() {
+    if (auto expr = parse_expression()) {
+      // Prototype is completely anonymous; no name or arguments
+      auto proto =
+          std::make_unique<ast::PrototypeAST>("", std::vector<std::string>());
+      return std::make_unique<ast::FunctionAST>(std::move(proto),
+                                                std::move(expr));
+    }
+    return nullptr;
+  }
 };
 
 namespace ast {

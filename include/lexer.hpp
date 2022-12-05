@@ -17,6 +17,7 @@ namespace hls {
  * return one of the following.
  */
 enum class TokenType {
+  tok_none,
   tok_eof,  //< End-of-file token
   // Keywords
   tok_def,     //< Function definition keyword
@@ -36,6 +37,8 @@ enum class TokenType {
  */
 class Token {
  public:
+  Token() : type_{TokenType::tok_none}, value_{std::nullopt} {}
+
   /**
    * @brief Class constructor.
    * @param type Type of token that was lexed.
@@ -64,7 +67,9 @@ class Token {
    * @brief Getter for the Token value.
    * @return Value of the Token.
    */
-  const std::optional<std::string>& value() const { return value_; }
+  const std::string value() const {
+    return value_.value_or("");
+  }
 
  private:
   TokenType type_;

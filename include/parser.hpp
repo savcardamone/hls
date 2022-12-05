@@ -11,141 +11,10 @@
 #include <string>
 #include <vector>
 
+#include "ast.hpp"
 #include "lexer.hpp"
 
 namespace hls {
-
-namespace ast {
-/**
- * @brief Base class for all expression AST nodes.
- */
-class ExprAST {
- public:
-  /**
-   * @brief Class destructor.
-   */
-  ~ExprAST() {};
-};
-
-/**
- * @brief Numerical expression AST node for numeric literals.
- */
-class NumberExprAST : public ExprAST {
- public:
-  /**
-   * @brief Class constructor.
-   * @param val The numeric value to initialise the expression with.
-   */
-  NumberExprAST(const double& val) : val_{val} {}
-
- private:
-  double val_;
-};
-
-/**
- * @brief Variable expression AST node for references to variables.
- */
-class VariableExprAST : public ExprAST {
- public:
-  /**
-   * @brief Class constructor.
-   * @param name Name of the variable.
-   */
-  VariableExprAST(const std::string& name) : name_{name} {}
-
- private:
-  std::string name_;
-};
-
-/**
- * @brief Expression AST node for binary operators of the form lhs * rhs,
- * where * is some binary operator.
- */
-class BinaryExprAST : public ExprAST {
- public:
-  /**
-   * @brief Class constructor.
-   * @param op The binary operator.
-   * @param lhs Left-hand side expression from the binary expression.
-   * @param rhs Right-hand side expression from the binary expression.
-   */
-  BinaryExprAST(const char op, std::unique_ptr<ExprAST> lhs,
-                std::unique_ptr<ExprAST> rhs)
-      : op_{op}, lhs_{std::move(lhs)}, rhs_{std::move(rhs)} {}
-
- private:
-  char op_;
-  std::unique_ptr<ExprAST> lhs_, rhs_;
-};
-
-/**
- * @brief Expression AST node for a function call of the form
- * callee(args), where callee is some identifier and args is a vector of
- * expression AST nodes.
- */
-class CallExprAST : public ExprAST {
- public:
-  /**
-   * @brief Class constructor.
-   * @param callee Identifier for the function name.
-   * @param args Arguments to the function.
-   */
-  CallExprAST(const std::string& callee,
-              std::vector<std::unique_ptr<ExprAST>> args)
-      : callee_{callee}, args_{std::move(args)} {}
-
- private:
-  std::string callee_;
-  std::vector<std::unique_ptr<ExprAST>> args_;
-};
-
-/**
- * @brief AST node for a function prototype. This is much the same as the
- * CallExprAST, but here we're just detailing the function interface, i.e.
- * the names that it takes.
- */
-class PrototypeAST {
- public:
-  /**
-   * @brief Class constructor.
-   * @param name Name of the function.
-   * @param args Vector containing argument names.
-   */
-  PrototypeAST(const std::string& name, std::vector<std::string> args)
-      : name_{name}, args_{std::move(args)} {}
-
-  /**
-   * @brief Getter for the function name.
-   * @return The name of the function.
-   */
-  const std::string& name() const { return name_; }
-
- private:
-  std::string name_;
-  std::vector<std::string> args_;
-};
-
-/**
- * @brief AST node for the function; both prototype and body, so the full
- * function definition..
- */
-class FunctionAST {
- public:
-  /**
-   * @brief Class constructor.
-   * @param proto Function prototype.
-   * @param body Body of the function.
-   */
-  FunctionAST(std::unique_ptr<PrototypeAST> proto,
-              std::unique_ptr<ExprAST> body)
-      : proto_{std::move(proto)}, body_{std::move(body)} {}
-
- private:
-  std::unique_ptr<PrototypeAST> proto_;
-  std::unique_ptr<ExprAST> body_;
-};
-
-}  // namespace ast
 
 /**
  * @brief Parser for the Kaleidoscope language. Wraps the lexer and constructs
@@ -230,7 +99,7 @@ class Parser {
    * @param message Message to print to stderr.
    * @return ExprAST unique pointer that just wraps nullptr.
    */
-  std::unique_ptr<ast::ExprAST> expr_error(const std::string& message) {
+  std::unique_ptr<ExprAST> expr_error(const std::string& message) {
     std::cerr << message << std::endl;
     return nullptr;
   }
@@ -240,7 +109,7 @@ class Parser {
    * @param message Message to print to stderr.
    * @return PrototypeAST unique pointer that just wraps nullptr.
    */
-  std::unique_ptr<ast::PrototypeAST> proto_error(const std::string& message) {
+  std::unique_ptr<PrototypeAST> proto_error(const std::string& message) {
     expr_error(message);
     return nullptr;
   }
@@ -261,7 +130,7 @@ class Parser {
    * or parenthetical expression.
    * @return The primary expression AST node.
    */
-  std::unique_ptr<ast::ExprAST> parse_primary() {
+  std::unique_ptr<ExprAST> parse_primary() {
     switch (current_token_.type()) {
       default:
         return nullptr;
@@ -280,11 +149,11 @@ class Parser {
    * node.
    * @return The numerical expression AST node.
    */
-  std::unique_ptr<ast::ExprAST> parse_number_expr() {
+  std::unique_ptr<ExprAST> parse_number_expr() {
     // Retrieve the numerical token in the token buffer and create an AST
     // node with it
     auto result =
-        std::make_unique<ast::NumberExprAST>(std::stof(current_token_.value()));
+        std::make_unique<NumberExprAST>(std::stof(current_token_.value()));
     next_token();
     return std::move(result);
   }
@@ -293,7 +162,7 @@ class Parser {
    * @brief Parse the contents from a parenthetical expression.
    * @return The expression AST node.
    */
-  std::unique_ptr<ast::ExprAST> parse_parentheses_expr() {
+  std::unique_ptr<ExprAST> parse_parentheses_expr() {
     // Have already encountered '(', so move past it
     next_token();
 
@@ -319,7 +188,7 @@ class Parser {
    *    (2) Function call, in which case return the call AST node.
    * @return The identifier expression AST node.
    */
-  std::unique_ptr<ast::ExprAST> parse_identifier_expr() {
+  std::unique_ptr<ExprAST> parse_identifier_expr() {
     // Retrieve the identifier name, and move on to the rest of the
     // statement
     std::string name = current_token_.value();
@@ -328,11 +197,11 @@ class Parser {
     // If next token isn't an opening parenthesis, then we must be parsing
     // a basic variable expression rather than function call
     if (current_token_.value() != "(")
-      return std::make_unique<ast::VariableExprAST>(name);
+      return std::make_unique<VariableExprAST>(name);
 
     // Otherwise we have a function call
     next_token();
-    std::vector<std::unique_ptr<ast::ExprAST>> args;
+    std::vector<std::unique_ptr<ExprAST>> args;
 
     // While we haven't encountered the closing parenthesis, continue
     // parsing the expression
@@ -358,7 +227,7 @@ class Parser {
 
     // Eat the closing ')' and return out call expression
     next_token();
-    return std::make_unique<ast::CallExprAST>(name, std::move(args));
+    return std::make_unique<CallExprAST>(name, std::move(args));
   }
 
   // ==========================================================================
@@ -388,7 +257,7 @@ class Parser {
    * is also a primary).
    * @return The expression AST node.
    */
-  std::unique_ptr<ast::ExprAST> parse_expression() {
+  std::unique_ptr<ExprAST> parse_expression() {
     auto lhs = parse_primary();
     if (!lhs) return expr_error("Couldn't parse LHS in expression.");
 
@@ -406,8 +275,8 @@ class Parser {
    * @param lhs
    * @return
    */
-  std::unique_ptr<ast::ExprAST> parse_binop_rhs(
-      int expr_precedence, std::unique_ptr<ast::ExprAST> lhs) {
+  std::unique_ptr<ExprAST> parse_binop_rhs(
+      int expr_precedence, std::unique_ptr<ExprAST> lhs) {
     // Keep on eating the full expression
     while (1) {
       // If we have a binop as the current token, then retrieve a precedence >=
@@ -448,7 +317,7 @@ class Parser {
           return expr_error("Couldn't find RHS in recursive binop search.");
       }
 
-      lhs = std::make_unique<ast::BinaryExprAST>(
+      lhs = std::make_unique<BinaryExprAST>(
           *binop.value().c_str(), std::move(lhs), std::move(rhs));
     }
   }
@@ -458,7 +327,7 @@ class Parser {
    * ...).
    * @return Prototype AST node.
    */
-  std::unique_ptr<ast::PrototypeAST> parse_prototype() {
+  std::unique_ptr<PrototypeAST> parse_prototype() {
     // Prototype must start with an identifier; eat the function name if so
     if (current_token_.type() != TokenType::tok_identifier)
       return proto_error("Prototype must begin with an identifier.");
@@ -480,7 +349,7 @@ class Parser {
       return proto_error("Prototype arguments must be ended with parenthesis.");
     next_token();
 
-    return std::make_unique<ast::PrototypeAST>(function_name,
+    return std::make_unique<PrototypeAST>(function_name,
                                                std::move(arg_names));
   }
 
@@ -490,7 +359,7 @@ class Parser {
    * comprising a prototype and function body.
    * @return Function definintion AST.
    */
-  std::unique_ptr<ast::FunctionAST> parse_definition() {
+  std::unique_ptr<FunctionAST> parse_definition() {
     // Eat the def keyword
     next_token();
 
@@ -501,7 +370,7 @@ class Parser {
     // Parse the function expression and return the function AST node if we've
     // been able to retrieve a valid expression
     if (auto expr = parse_expression()) {
-      return std::make_unique<ast::FunctionAST>(std::move(proto),
+      return std::make_unique<FunctionAST>(std::move(proto),
                                                 std::move(expr));
     }
 
@@ -513,7 +382,7 @@ class Parser {
    * extern func_name(arg1, arg2, ...).
    * @return Prototype AST.
    */
-  std::unique_ptr<ast::PrototypeAST> parse_extern() {
+  std::unique_ptr<PrototypeAST> parse_extern() {
     // Eat the extern keywork
     next_token();
     return parse_prototype();
@@ -524,12 +393,12 @@ class Parser {
    * anonymous function without name.
    * @return Function definition AST.
    */
-  std::unique_ptr<ast::FunctionAST> parse_top_level() {
+  std::unique_ptr<FunctionAST> parse_top_level() {
     if (auto expr = parse_expression()) {
       // Prototype is completely anonymous; no name or arguments
       auto proto =
-          std::make_unique<ast::PrototypeAST>("", std::vector<std::string>());
-      return std::make_unique<ast::FunctionAST>(std::move(proto),
+          std::make_unique<PrototypeAST>("", std::vector<std::string>());
+      return std::make_unique<FunctionAST>(std::move(proto),
                                                 std::move(expr));
     }
     return nullptr;

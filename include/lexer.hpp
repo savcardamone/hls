@@ -67,14 +67,51 @@ class Token {
    * @brief Getter for the Token value.
    * @return Value of the Token.
    */
-  const std::string value() const {
-    return value_.value_or("");
-  }
+  const std::string value() const { return value_.value_or(""); }
 
  private:
   TokenType type_;
   std::optional<std::string> value_;
 };
+
+/**
+ * @brief Output stream operator overload for printing of Token.
+ * @param os Output stream.
+ * @param token Token to print.
+ * @return The output stream we've printed to.
+ */
+std::ostream& operator<<(std::ostream& os, const Token& token) {
+  switch (token.type()) {
+    case TokenType::tok_eof: {
+      os << "Token Type: EOF";
+      break;
+    }
+    case TokenType::tok_def: {
+      os << "Token Type: Def";
+      break;
+    }
+    case TokenType::tok_extern: {
+      os << "Token Type: Extern";
+      break;
+    }
+    case TokenType::tok_identifier: {
+      os << "Token Type: Identifier, Token Value: " << token.value();
+      break;
+    }
+    case TokenType::tok_number: {
+      os << "Token Type: Number, Token Value: " << token.value();
+      break;
+    }
+    case TokenType::tok_operator: {
+      os << "Token Type: Operator, Token Value: " << token.value();
+      break;
+    }
+    default:
+      os << "Token Type: None, Token Value: " << token.value();
+      break;
+  }
+  return os;
+}
 
 /**
  * @brief Lexical analysis of the Kaleidoscope language.

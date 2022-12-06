@@ -29,6 +29,46 @@ enum class TokenType {
 };
 
 /**
+ * @brief Output stream operator overload for printing of TokenType.
+ * @param os Output stream.
+ * @param token_type TokenType to print.
+ * @return The output stream we've printed to.
+ */
+std::ostream& operator<<(std::ostream& os, const TokenType& type) {
+  switch (type) {
+    case TokenType::tok_eof: {
+      os << "Token Type: EOF";
+      break;
+    }
+    case TokenType::tok_def: {
+      os << "Token Type: Def";
+      break;
+    }
+    case TokenType::tok_extern: {
+      os << "Token Type: Extern";
+      break;
+    }
+    case TokenType::tok_identifier: {
+      os << "Token Type: Identifier";
+      break;
+    }
+    case TokenType::tok_number: {
+      os << "Token Type: Number";
+      break;
+    }
+    case TokenType::tok_operator: {
+      os << "Token Type: Operator";
+      break;
+    }
+    default:
+      os << "Token Type: Unknown";
+      break;
+  }
+  return os;
+}
+
+  
+/**
  * @brief Wrapper around a token type and the associated string that was lexed
  * and identified as being of that type.
  *
@@ -81,35 +121,8 @@ class Token {
  * @return The output stream we've printed to.
  */
 std::ostream& operator<<(std::ostream& os, const Token& token) {
-  switch (token.type()) {
-    case TokenType::tok_eof: {
-      os << "Token Type: EOF";
-      break;
-    }
-    case TokenType::tok_def: {
-      os << "Token Type: Def";
-      break;
-    }
-    case TokenType::tok_extern: {
-      os << "Token Type: Extern";
-      break;
-    }
-    case TokenType::tok_identifier: {
-      os << "Token Type: Identifier, Token Value: " << token.value();
-      break;
-    }
-    case TokenType::tok_number: {
-      os << "Token Type: Number, Token Value: " << token.value();
-      break;
-    }
-    case TokenType::tok_operator: {
-      os << "Token Type: Operator, Token Value: " << token.value();
-      break;
-    }
-    default:
-      os << "Token Type: None, Token Value: " << token.value();
-      break;
-  }
+  os << token.type();
+  if (token.value() != "") os << ", Value: " << token.value();
   return os;
 }
 

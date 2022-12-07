@@ -22,7 +22,24 @@ class ExprAST {
    * @brief Class destructor.
    */
   ~ExprAST(){};
+
+  /**
+   * @brief Create string representation of object.
+   * @return String representation of object.
+   */
+  virtual std::string print() const { return "Unreachable"; };
 };
+
+/**
+ * @brief Stream operator overload for output of ExprAST.
+ * @param os The output stream.
+ * @param ast The AST node to print.
+ * @return The modified output stream.
+ */
+std::ostream& operator<<(std::ostream& os, const ExprAST& ast) {
+  os << ast.print();
+  return os;
+}
 
 /**
  * @brief Numerical expression AST node for numeric literals.
@@ -35,21 +52,17 @@ class NumberExprAST : public ExprAST {
    */
   NumberExprAST(const double& val) : val_{val} {}
 
+  /**
+   * @brief Overload of the string representation method for the object.
+   * @return String representation of the object.
+   */
+  virtual std::string print() const final {
+    return "NumberExprAST: Value = " + std::to_string(val_);
+  }
+
  private:
   double val_;
-  friend std::ostream& operator<<(std::ostream& os, const NumberExprAST& ast);
 };
-
-/**
- * @brief Stream operator overload for output of NumberExprAST.
- * @param os The output stream.
- * @param ast The AST node to print.
- * @return The modified output stream.
- */
-std::ostream& operator<<(std::ostream& os, const NumberExprAST& ast) {
-  os << "NumberExprAST, Value = " << ast.val_;
-  return os;
-}
 
 /**
  * @brief Variable expression AST node for references to variables.
@@ -62,21 +75,17 @@ class VariableExprAST : public ExprAST {
    */
   VariableExprAST(const std::string& name) : name_{name} {}
 
+  /**
+   * @brief Overload of the string representation method for the object.
+   * @return String representation of the object.
+   */
+  virtual std::string print() const final {
+    return "VariableExprAST: Name = " + name_;
+  }
+
  private:
-  friend std::ostream& operator<<(std::ostream& os, const VariableExprAST& ast);
   std::string name_;
 };
-
-/**
- * @brief Stream operator overload for output of VariableExprAST.
- * @param os The output stream.
- * @param ast The AST node to print.
- * @return The modified output stream.
- */
-std::ostream& operator<<(std::ostream& os, const VariableExprAST& ast) {
-  os << "VariableExprAST, Name = " << ast.name_;
-  return os;
-}
 
 /**
  * @brief Expression AST node for binary operators of the form lhs * rhs,
@@ -93,6 +102,15 @@ class BinaryExprAST : public ExprAST {
   BinaryExprAST(const char op, std::unique_ptr<ExprAST> lhs,
                 std::unique_ptr<ExprAST> rhs)
       : op_{op}, lhs_{std::move(lhs)}, rhs_{std::move(rhs)} {}
+
+  /**
+   * @brief Overload of the string representation method for the object.
+   * @return String representation of the object.
+   */
+  virtual std::string print() const final {
+    return "BinaryExprAST: LHS = (" + lhs_->print() + "), Operator = " + op_ +
+           ", RHS = (" + rhs_->print() + ")";
+  }
 
  private:
   char op_;
@@ -114,6 +132,20 @@ class CallExprAST : public ExprAST {
   CallExprAST(const std::string& callee,
               std::vector<std::unique_ptr<ExprAST>> args)
       : callee_{callee}, args_{std::move(args)} {}
+
+  /**
+   * @brief Overload of the string representation method for the object.
+   * @return String representation of the object.
+   */
+  virtual std::string print() const final {
+    std::string return_val;
+    return_val += "CallExprAST: Signature = " + callee_ + "(";
+    for (int idx = 0; idx < args_.size() - 1; ++idx) {
+      return_val += args_[idx]->print() + ", ";
+    }
+    return_val += args_[args_.size() - 1]->print() + ")";
+    return return_val;
+  }
 
  private:
   std::string callee_;
@@ -177,9 +209,22 @@ class FunctionAST {
       : proto_{std::move(proto)}, body_{std::move(body)} {}
 
  private:
+  friend std::ostream& operator<<(std::ostream& os, const FunctionAST& ast);
   std::unique_ptr<PrototypeAST> proto_;
   std::unique_ptr<ExprAST> body_;
 };
+
+/**
+ * @brief Stream operator overload for output of FunctionAST.
+ * @param os The output stream.
+ * @param ast The AST node to print.
+ * @return The modified output stream.
+ */
+std::ostream& operator<<(std::ostream& os, const FunctionAST& ast) {
+  os << "FunctionAST, Prototype = " << *ast.proto_ << ", "
+     << "Body = " << *ast.body_;
+  return os;
+}
 
 }  // namespace hls
 

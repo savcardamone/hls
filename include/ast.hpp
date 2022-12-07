@@ -11,6 +11,8 @@
 #include <string>
 #include <vector>
 
+#include "ast_visitor.hpp"
+
 namespace hls {
 
 /**
@@ -24,10 +26,18 @@ class ExprAST {
   ~ExprAST(){};
 
   /**
-   * @brief Create string representation of object.
+   * @brief Create string representation of object. This should be overridden by
+   * anything deriving from ExprAST.
    * @return String representation of object.
    */
   virtual std::string print() const { return "Unreachable"; };
+
+  /**
+   * @brief Visitor pattern to allow for algorithmic application across all AST
+   * node types.
+   * @param visitor The visitor to apply to the AST node.
+   */
+  virtual void accept(ASTVisitor& visitor) = 0;
 };
 
 /**
@@ -60,6 +70,13 @@ class NumberExprAST : public ExprAST {
     return "NumberExprAST: Value = " + std::to_string(val_);
   }
 
+  /**
+   * @brief Accept an ASTVisitor instance to manipulate the NumberExprAST
+   * object.
+   * @param visitor The visitor to apply to the AST node.
+   */
+  void accept(ASTVisitor& visitor) override { visitor.number_expr(this); }
+
  private:
   double val_;
 };
@@ -82,6 +99,13 @@ class VariableExprAST : public ExprAST {
   virtual std::string print() const final {
     return "VariableExprAST: Name = " + name_;
   }
+
+  /**
+   * @brief Accept an ASTVisitor instance to manipulate the VariableExprAST
+   * object.
+   * @param visitor The visitor to apply to the AST node.
+   */
+  void accept(ASTVisitor& visitor) override { visitor.variable_expr(this); }
 
  private:
   std::string name_;
@@ -111,6 +135,13 @@ class BinaryExprAST : public ExprAST {
     return "BinaryExprAST: LHS = (" + lhs_->print() + "), Operator = " + op_ +
            ", RHS = (" + rhs_->print() + ")";
   }
+
+  /**
+   * @brief Accept an ASTVisitor instance to manipulate the BinaryExprAST
+   * object.
+   * @param visitor The visitor to apply to the AST node.
+   */
+  void accept(ASTVisitor& visitor) override { visitor.binary_expr(this); }
 
  private:
   char op_;
@@ -147,6 +178,13 @@ class CallExprAST : public ExprAST {
     return return_val;
   }
 
+  /**
+   * @brief Accept an ASTVisitor instance to manipulate the CallExprAST
+   * object.
+   * @param visitor The visitor to apply to the AST node.
+   */
+  void accept(ASTVisitor& visitor) override { visitor.call_expr(this); }
+
  private:
   std::string callee_;
   std::vector<std::unique_ptr<ExprAST>> args_;
@@ -172,6 +210,13 @@ class PrototypeAST {
    * @return The name of the function.
    */
   const std::string& name() const { return name_; }
+
+  /**
+   * @brief Accept an ASTVisitor instance to manipulate the PrototypeAST
+   * object.
+   * @param visitor The visitor to apply to the AST node.
+   */
+  void accept(ASTVisitor& visitor) { visitor.prototype(this); }
 
  private:
   friend std::ostream& operator<<(std::ostream& os, const PrototypeAST& ast);
@@ -207,6 +252,13 @@ class FunctionAST {
   FunctionAST(std::unique_ptr<PrototypeAST> proto,
               std::unique_ptr<ExprAST> body)
       : proto_{std::move(proto)}, body_{std::move(body)} {}
+
+  /**
+   * @brief Accept an ASTVisitor instance to manipulate the FunctionAST
+   * object.
+   * @param visitor The visitor to apply to the AST node.
+   */
+  void accept(ASTVisitor& visitor) { visitor.function(this); }
 
  private:
   friend std::ostream& operator<<(std::ostream& os, const FunctionAST& ast);

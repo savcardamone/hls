@@ -67,7 +67,6 @@ std::ostream& operator<<(std::ostream& os, const TokenType& type) {
   return os;
 }
 
-  
 /**
  * @brief Wrapper around a token type and the associated string that was lexed
  * and identified as being of that type.
@@ -133,23 +132,24 @@ class Lexer {
  public:
   /**
    * @brief Class constructor.
+   * @param input Input stream to tokenise.
    */
-  Lexer() {}
+  Lexer(std::istream& input) : input_{input} {}
 
   /**
    * @brief Retrieve a token from the input stream.
    * @param input The input stream to lex from.
    * @return The next Token parsed from the input stream.
    */
-  Token get_token(std::istream& input) {
+  Token get_token() {
     // Eat any whitespace (including tabs, newlines and spaces)
-    while (isspace(last_char_)) last_char_ = input.get();
+    while (isspace(last_char_)) last_char_ = input_.get();
 
     // If the character is alphabetical, it's either an identifier or
     // language keyword, so consume all subsequent alphanumerical characters
     if (isalpha(last_char_)) {
       std::string identifier_string(1, last_char_);
-      while (isalnumuscore(last_char_ = input.get())) {
+      while (isalnumuscore(last_char_ = input_.get())) {
         identifier_string += last_char_;
       }
 
@@ -169,7 +169,7 @@ class Lexer {
       std::string numerical_string;
       do {
         numerical_string += last_char_;
-        last_char_ = input.get();
+        last_char_ = input_.get();
       } while (isdigit(last_char_) || last_char_ == '.');
       // Return a numerical token
       return Token(TokenType::tok_number, numerical_string);
@@ -178,11 +178,11 @@ class Lexer {
     // If the character indicates a comment, consume the entire line
     if (last_char_ == '#') {
       do {
-        last_char_ = input.get();
+        last_char_ = input_.get();
       } while (last_char_ != EOF && last_char_ != '\n' && last_char_ != '\r');
       // Recursively call this method so we can return a token if we didn't
       // reach the end-of-file
-      if (last_char_ != EOF) return get_token(input);
+      if (last_char_ != EOF) return get_token();
     }
 
     // If the character is the end-of-file, then we're done, so return the
@@ -193,20 +193,23 @@ class Lexer {
     // character, so this must correspond to an operator of some kind that we
     // can return as a token comprising a single character
     std::string this_char(1, last_char_);
-    last_char_ = input.get();
+    last_char_ = input_.get();
     return Token(TokenType::tok_operator, this_char);
   }
 
  private:
   int last_char_ = ' ';
+  std::istream& input_;
 
   /**
    * @brief Check whether a character is alphanumerical or an underscore.
-   * @param input The character to check.
+   * @param input_char The character to check.
    * @return True if the character is alphanumerical or an underscore, false
    * otherwise.
    */
-  bool isalnumuscore(int& input) { return isalnum(input) || input == '_'; }
+  bool isalnumuscore(int& input_char) {
+    return isalnum(input_char) || input_char == '_';
+  }
 };
 
 }  // namespace hls

@@ -17,18 +17,14 @@ std::stringstream function_input("def my_func(a, b)\n\r\ta + b");
  * in the tokens ["def", "my_func", "(", ")", "std::nullopt"].
  */
 TEST(LexerTest, TestPrototypeLexing) {
-  hls::Lexer lexer;
+  hls::Lexer lexer(prototype_input);
 
-  ASSERT_EQ(lexer.get_token(prototype_input),
-            hls::Token(hls::TokenType::tok_def));
-  ASSERT_EQ(lexer.get_token(prototype_input),
+  ASSERT_EQ(lexer.get_token(), hls::Token(hls::TokenType::tok_def));
+  ASSERT_EQ(lexer.get_token(),
             hls::Token(hls::TokenType::tok_identifier, "my_func"));
-  ASSERT_EQ(lexer.get_token(prototype_input),
-            hls::Token(hls::TokenType::tok_operator, "("));
-  ASSERT_EQ(lexer.get_token(prototype_input),
-            hls::Token(hls::TokenType::tok_operator, ")"));
-  ASSERT_EQ(lexer.get_token(prototype_input),
-            hls::Token(hls::TokenType::tok_eof));
+  ASSERT_EQ(lexer.get_token(), hls::Token(hls::TokenType::tok_operator, "("));
+  ASSERT_EQ(lexer.get_token(), hls::Token(hls::TokenType::tok_operator, ")"));
+  ASSERT_EQ(lexer.get_token(), hls::Token(hls::TokenType::tok_eof));
 };
 
 /**
@@ -36,28 +32,18 @@ TEST(LexerTest, TestPrototypeLexing) {
  * ["def", "my_func", "(", "a", ",", "b", ")", "a", "+", "b"].
  */
 TEST(LexerTest, TestFunctionLexing) {
-  hls::Lexer lexer;
+  hls::Lexer lexer(function_input);
 
-  ASSERT_EQ(lexer.get_token(function_input),
-            hls::Token(hls::TokenType::tok_def));
-  ASSERT_EQ(lexer.get_token(function_input),
+  ASSERT_EQ(lexer.get_token(), hls::Token(hls::TokenType::tok_def));
+  ASSERT_EQ(lexer.get_token(),
             hls::Token(hls::TokenType::tok_identifier, "my_func"));
-  ASSERT_EQ(lexer.get_token(function_input),
-            hls::Token(hls::TokenType::tok_operator, "("));
-  ASSERT_EQ(lexer.get_token(function_input),
-            hls::Token(hls::TokenType::tok_identifier, "a"));
-  ASSERT_EQ(lexer.get_token(function_input),
-            hls::Token(hls::TokenType::tok_operator, ","));
-  ASSERT_EQ(lexer.get_token(function_input),
-            hls::Token(hls::TokenType::tok_identifier, "b"));
-  ASSERT_EQ(lexer.get_token(function_input),
-            hls::Token(hls::TokenType::tok_operator, ")"));
-  ASSERT_EQ(lexer.get_token(function_input),
-            hls::Token(hls::TokenType::tok_identifier, "a"));
-  ASSERT_EQ(lexer.get_token(function_input),
-            hls::Token(hls::TokenType::tok_operator, "+"));
-  ASSERT_EQ(lexer.get_token(function_input),
-            hls::Token(hls::TokenType::tok_identifier, "b"));
-  ASSERT_EQ(lexer.get_token(function_input),
-            hls::Token(hls::TokenType::tok_eof));
+  ASSERT_EQ(lexer.get_token(), hls::Token(hls::TokenType::tok_operator, "("));
+  ASSERT_EQ(lexer.get_token(), hls::Token(hls::TokenType::tok_identifier, "a"));
+  ASSERT_EQ(lexer.get_token(), hls::Token(hls::TokenType::tok_operator, ","));
+  ASSERT_EQ(lexer.get_token(), hls::Token(hls::TokenType::tok_identifier, "b"));
+  ASSERT_EQ(lexer.get_token(), hls::Token(hls::TokenType::tok_operator, ")"));
+  ASSERT_EQ(lexer.get_token(), hls::Token(hls::TokenType::tok_identifier, "a"));
+  ASSERT_EQ(lexer.get_token(), hls::Token(hls::TokenType::tok_operator, "+"));
+  ASSERT_EQ(lexer.get_token(), hls::Token(hls::TokenType::tok_identifier, "b"));
+  ASSERT_EQ(lexer.get_token(), hls::Token(hls::TokenType::tok_eof));
 };

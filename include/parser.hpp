@@ -24,9 +24,9 @@ class Parser {
  public:
   /**
    * @brief Class constructor. Begin the parsing loop.
-   * @param input Input stream to be parsed.
+   * @param lexer Lexer which provides token stream.
    */
-  Parser(std::istream& input) : input_{input} {
+  Parser(Lexer& lexer) : lexer_{lexer} {
     // Prime the token buffer
     next_token();
     while (1) {
@@ -52,7 +52,6 @@ class Parser {
   }
 
  private:
-  std::istream& input_;
   Lexer lexer_;
   Token current_token_;
   std::map<std::string, int> binop_precedence_{
@@ -119,7 +118,7 @@ class Parser {
    * the current_token_ buffer.
    * @return The next Token from the lexer.
    */
-  Token next_token() { return current_token_ = lexer_.get_token(input_); }
+  Token next_token() { return current_token_ = lexer_.get_token(); }
 
   // ==========================================================================
   //                        PRIMARY EXPRESSION PARSING

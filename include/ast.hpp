@@ -7,6 +7,7 @@
 #define __HLS_AST_HPP
 
 #include <memory>
+#include <ostream>
 #include <string>
 #include <vector>
 
@@ -36,7 +37,19 @@ class NumberExprAST : public ExprAST {
 
  private:
   double val_;
+  friend std::ostream& operator<<(std::ostream& os, const NumberExprAST& ast);
 };
+
+/**
+ * @brief Stream operator overload for output of NumberExprAST.
+ * @param os The output stream.
+ * @param ast The AST node to print.
+ * @return The modified output stream.
+ */
+std::ostream& operator<<(std::ostream& os, const NumberExprAST& ast) {
+  os << "NumberExprAST, Value = " << ast.val_;
+  return os;
+}
 
 /**
  * @brief Variable expression AST node for references to variables.
@@ -50,8 +63,20 @@ class VariableExprAST : public ExprAST {
   VariableExprAST(const std::string& name) : name_{name} {}
 
  private:
+  friend std::ostream& operator<<(std::ostream& os, const VariableExprAST& ast);
   std::string name_;
 };
+
+/**
+ * @brief Stream operator overload for output of VariableExprAST.
+ * @param os The output stream.
+ * @param ast The AST node to print.
+ * @return The modified output stream.
+ */
+std::ostream& operator<<(std::ostream& os, const VariableExprAST& ast) {
+  os << "VariableExprAST, Name = " << ast.name_;
+  return os;
+}
 
 /**
  * @brief Expression AST node for binary operators of the form lhs * rhs,
@@ -117,9 +142,24 @@ class PrototypeAST {
   const std::string& name() const { return name_; }
 
  private:
+  friend std::ostream& operator<<(std::ostream& os, const PrototypeAST& ast);
   std::string name_;
   std::vector<std::string> args_;
 };
+
+/**
+ * @brief Stream operator overload for output of PrototypeAST.
+ * @param os The output stream.
+ * @param ast The AST node to print.
+ * @return The modified output stream.
+ */
+std::ostream& operator<<(std::ostream& os, const PrototypeAST& ast) {
+  os << "PrototypeAST, Signature = " << ast.name_ << "(";
+  for (int idx = 0; idx < ast.args_.size() - 1; ++idx)
+    os << ast.args_[idx] << ", ";
+  os << ast.args_[ast.args_.size() - 1] << ")";
+  return os;
+}
 
 /**
  * @brief AST node for the function; both prototype and body, so the full

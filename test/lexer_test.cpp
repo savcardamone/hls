@@ -3,7 +3,7 @@
  * @author Salvatore Cardamone
  * @brief Test of the Kaleidoscope lexer.
  */
-#include "lexer.hpp"
+#include "hls/lexer.hpp"
 
 #include <gtest/gtest.h>
 

@@ -1,0 +1,4 @@
+build:gcc --cxxopt=-std=c++17
+build:gcc --cxxopt=-Wall
+#build:gcc --cxxopt=-Werror
+build:gcc --cxxopt=-Wextra

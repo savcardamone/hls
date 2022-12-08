@@ -11,8 +11,8 @@
 #include <string>
 #include <vector>
 
-#include "ast.hpp"
-#include "lexer.hpp"
+#include "hls/ast.hpp"
+#include "hls/lexer.hpp"
 
 namespace hls {
 
@@ -23,32 +23,45 @@ namespace hls {
 class Parser {
  public:
   /**
-   * @brief Class constructor. Begin the parsing loop.
+   * @brief Class constructor. Prime the token stream.
    * @param lexer Lexer which provides token stream.
    */
-  Parser(Lexer& lexer) : lexer_{lexer} {
+  Parser(Lexer& lexer) : lexer_{lexer} { next_token(); }
+
+  /**
+   * @brief Parse the token stream from the lexer until we encounter an EOF.
+   */
+  void parse() {
     // Prime the token buffer
-    next_token();
-    while (1) {
-      switch (current_token_.type()) {
-        case TokenType::tok_eof:
-          return;
-        case TokenType::tok_def:
-          handle_definition();
-          break;
-        case TokenType::tok_extern:
-          handle_extern();
-          break;
-        case TokenType::tok_operator:
-          if (current_token_.value() == ";") {
-            next_token();
-            break;
-          }
-        default:
-          handle_top_level();
-          break;
-      }
+    // Just continue looping
+    while (current_token_.type() != TokenType::tok_eof) {
+      step();
+      next_token();
     }
+  }
+
+  /**
+   * @brief Step through the token stream from the lexer until we can return a
+   * complete AST node.
+   * @return AST node that has been parsed.
+   */
+  std::unique_ptr<AST> step() {
+    switch (current_token_.type()) {
+      case TokenType::tok_eof:
+        return nullptr;
+      case TokenType::tok_def:
+        return handle_definition();
+      case TokenType::tok_extern:
+        return handle_extern();
+      case TokenType::tok_operator:
+        if (current_token_.value() == ";") {
+          next_token();
+          break;
+        }
+      default:
+        return handle_top_level();
+    }
+    return nullptr;
   }
 
  private:
@@ -61,11 +74,13 @@ class Parser {
    * @brief Parse an extern function declaration. Recovers from any internal
    * errors by ignoring erroneous parsing and moving onto next expression.
    */
-  void handle_extern() {
-    if (parse_extern()) {
+  std::unique_ptr<AST> handle_extern() {
+    if (auto result = parse_extern()) {
       std::cout << "Parsed extern." << std::endl;
+      return result;
     } else {
       next_token();
+      return nullptr;
     }
   }
 
@@ -73,11 +88,13 @@ class Parser {
    * @brief Parse a function definition. Recovers from any internal
    * errors by ignoring erroneous parsing and moving onto next expression.
    */
-  void handle_definition() {
-    if (parse_definition()) {
+  std::unique_ptr<AST> handle_definition() {
+    if (auto result = parse_definition()) {
       std::cout << "Parsed function definition." << std::endl;
+      return result;
     } else {
       next_token();
+      return nullptr;
     }
   }
 
@@ -85,11 +102,13 @@ class Parser {
    * @brief Parse a top-level definition. Recovers from any internal
    * errors by ignoring erroneous parsing and moving onto next expression.
    */
-  void handle_top_level() {
-    if (parse_top_level()) {
+  std::unique_ptr<AST> handle_top_level() {
+    if (auto result = parse_top_level()) {
       std::cout << "Parsed top-level." << std::endl;
+      return result;
     } else {
       next_token();
+      return nullptr;
     }
   }
 
@@ -274,8 +293,8 @@ class Parser {
    * @param lhs
    * @return
    */
-  std::unique_ptr<ExprAST> parse_binop_rhs(
-      int expr_precedence, std::unique_ptr<ExprAST> lhs) {
+  std::unique_ptr<ExprAST> parse_binop_rhs(int expr_precedence,
+                                           std::unique_ptr<ExprAST> lhs) {
     // Keep on eating the full expression
     while (1) {
       // If we have a binop as the current token, then retrieve a precedence >=
@@ -316,8 +335,8 @@ class Parser {
           return expr_error("Couldn't find RHS in recursive binop search.");
       }
 
-      lhs = std::make_unique<BinaryExprAST>(
-          *binop.value().c_str(), std::move(lhs), std::move(rhs));
+      lhs = std::make_unique<BinaryExprAST>(*binop.value().c_str(),
+                                            std::move(lhs), std::move(rhs));
     }
   }
 
@@ -348,8 +367,7 @@ class Parser {
       return proto_error("Prototype arguments must be ended with parenthesis.");
     next_token();
 
-    return std::make_unique<PrototypeAST>(function_name,
-                                               std::move(arg_names));
+    return std::make_unique<PrototypeAST>(function_name, std::move(arg_names));
   }
 
   /**
@@ -369,8 +387,7 @@ class Parser {
     // Parse the function expression and return the function AST node if we've
     // been able to retrieve a valid expression
     if (auto expr = parse_expression()) {
-      return std::make_unique<FunctionAST>(std::move(proto),
-                                                std::move(expr));
+      return std::make_unique<FunctionAST>(std::move(proto), std::move(expr));
     }
 
     return nullptr;
@@ -397,8 +414,7 @@ class Parser {
       // Prototype is completely anonymous; no name or arguments
       auto proto =
           std::make_unique<PrototypeAST>("", std::vector<std::string>());
-      return std::make_unique<FunctionAST>(std::move(proto),
-                                                std::move(expr));
+      return std::make_unique<FunctionAST>(std::move(proto), std::move(expr));
     }
     return nullptr;
   }

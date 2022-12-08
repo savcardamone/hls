@@ -11,26 +11,18 @@
 #include <string>
 #include <vector>
 
-#include "ast_visitor.hpp"
+#include "hls/ast_visitor.hpp"
 
 namespace hls {
 
-/**
- * @brief Base class for all expression AST nodes.
- */
-class ExprAST {
+class AST {
  public:
-  /**
-   * @brief Class destructor.
-   */
-  ~ExprAST(){};
-
   /**
    * @brief Create string representation of object. This should be overridden by
    * anything deriving from ExprAST.
    * @return String representation of object.
    */
-  virtual std::string print() const { return "Unreachable"; };
+  virtual std::string print() const = 0;
 
   /**
    * @brief Visitor pattern to allow for algorithmic application across all AST
@@ -46,10 +38,15 @@ class ExprAST {
  * @param ast The AST node to print.
  * @return The modified output stream.
  */
-std::ostream& operator<<(std::ostream& os, const ExprAST& ast) {
+std::ostream& operator<<(std::ostream& os, const AST& ast) {
   os << ast.print();
   return os;
 }
+
+/**
+ * @brief Base class for all expression AST nodes.
+ */
+class ExprAST : public AST {};
 
 /**
  * @brief Numerical expression AST node for numeric literals.
@@ -66,7 +63,7 @@ class NumberExprAST : public ExprAST {
    * @brief Overload of the string representation method for the object.
    * @return String representation of the object.
    */
-  virtual std::string print() const final {
+  std::string print() const override {
     return "NumberExprAST: Value = " + std::to_string(val_);
   }
 
@@ -96,7 +93,7 @@ class VariableExprAST : public ExprAST {
    * @brief Overload of the string representation method for the object.
    * @return String representation of the object.
    */
-  virtual std::string print() const final {
+  std::string print() const override {
     return "VariableExprAST: Name = " + name_;
   }
 
@@ -131,7 +128,7 @@ class BinaryExprAST : public ExprAST {
    * @brief Overload of the string representation method for the object.
    * @return String representation of the object.
    */
-  virtual std::string print() const final {
+  std::string print() const override {
     return "BinaryExprAST: LHS = (" + lhs_->print() + "), Operator = " + op_ +
            ", RHS = (" + rhs_->print() + ")";
   }
@@ -168,7 +165,7 @@ class CallExprAST : public ExprAST {
    * @brief Overload of the string representation method for the object.
    * @return String representation of the object.
    */
-  virtual std::string print() const final {
+  std::string print() const override {
     std::string return_val;
     return_val += "CallExprAST: Signature = " + callee_ + "(";
     for (int idx = 0; idx < args_.size() - 1; ++idx) {
@@ -195,7 +192,7 @@ class CallExprAST : public ExprAST {
  * CallExprAST, but here we're just detailing the function interface, i.e.
  * the names that it takes.
  */
-class PrototypeAST {
+class PrototypeAST : public AST {
  public:
   /**
    * @brief Class constructor.
@@ -212,37 +209,35 @@ class PrototypeAST {
   const std::string& name() const { return name_; }
 
   /**
+   * @brief Overload of the string representation method for the object.
+   * @return String representation of the object.
+   */
+  std::string print() const override {
+    std::string return_val;
+    return_val += "PrototypeAST, Signature = " + name_ + "(";
+    for (int idx = 0; idx < args_.size() - 1; ++idx)
+      return_val += args_[idx] + ", ";
+    return_val += args_[args_.size() - 1] + ")";
+    return return_val;
+  }
+
+  /**
    * @brief Accept an ASTVisitor instance to manipulate the PrototypeAST
    * object.
    * @param visitor The visitor to apply to the AST node.
    */
-  void accept(ASTVisitor& visitor) { visitor.prototype(this); }
+  void accept(ASTVisitor& visitor) override { visitor.prototype(this); }
 
  private:
-  friend std::ostream& operator<<(std::ostream& os, const PrototypeAST& ast);
   std::string name_;
   std::vector<std::string> args_;
 };
 
 /**
- * @brief Stream operator overload for output of PrototypeAST.
- * @param os The output stream.
- * @param ast The AST node to print.
- * @return The modified output stream.
- */
-std::ostream& operator<<(std::ostream& os, const PrototypeAST& ast) {
-  os << "PrototypeAST, Signature = " << ast.name_ << "(";
-  for (int idx = 0; idx < ast.args_.size() - 1; ++idx)
-    os << ast.args_[idx] << ", ";
-  os << ast.args_[ast.args_.size() - 1] << ")";
-  return os;
-}
-
-/**
  * @brief AST node for the function; both prototype and body, so the full
  * function definition..
  */
-class FunctionAST {
+class FunctionAST : public AST {
  public:
   /**
    * @brief Class constructor.
@@ -254,29 +249,27 @@ class FunctionAST {
       : proto_{std::move(proto)}, body_{std::move(body)} {}
 
   /**
+   * @brief Overload of the string representation method for the object.
+   * @return String representation of the object.
+   */
+  std::string print() const override {
+    std::string return_val;
+    return_val += "FunctionAST, Prototype = " + proto_->print() + ", " +
+                  "Body = " + body_->print();
+    return return_val;
+  }
+
+  /**
    * @brief Accept an ASTVisitor instance to manipulate the FunctionAST
    * object.
    * @param visitor The visitor to apply to the AST node.
    */
-  void accept(ASTVisitor& visitor) { visitor.function(this); }
+  void accept(ASTVisitor& visitor) override { visitor.function(this); }
 
  private:
-  friend std::ostream& operator<<(std::ostream& os, const FunctionAST& ast);
   std::unique_ptr<PrototypeAST> proto_;
   std::unique_ptr<ExprAST> body_;
 };
-
-/**
- * @brief Stream operator overload for output of FunctionAST.
- * @param os The output stream.
- * @param ast The AST node to print.
- * @return The modified output stream.
- */
-std::ostream& operator<<(std::ostream& os, const FunctionAST& ast) {
-  os << "FunctionAST, Prototype = " << *ast.proto_ << ", "
-     << "Body = " << *ast.body_;
-  return os;
-}
 
 }  // namespace hls
 

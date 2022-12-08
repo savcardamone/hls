@@ -34,7 +34,7 @@ enum class TokenType {
  * @param token_type TokenType to print.
  * @return The output stream we've printed to.
  */
-std::ostream& operator<<(std::ostream& os, const TokenType& type) {
+static std::ostream& operator<<(std::ostream& os, const TokenType& type) {
   switch (type) {
     case TokenType::tok_eof: {
       os << "Token Type: EOF";
@@ -119,7 +119,7 @@ class Token {
  * @param token Token to print.
  * @return The output stream we've printed to.
  */
-std::ostream& operator<<(std::ostream& os, const Token& token) {
+static std::ostream& operator<<(std::ostream& os, const Token& token) {
   os << token.type();
   if (token.value() != "") os << ", Value: " << token.value();
   return os;

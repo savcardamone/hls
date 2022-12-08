@@ -168,7 +168,7 @@ class CallExprAST : public ExprAST {
   std::string print() const override {
     std::string return_val;
     return_val += "CallExprAST: Signature = " + callee_ + "(";
-    for (int idx = 0; idx < args_.size() - 1; ++idx) {
+    for (std::size_t idx = 0; idx < args_.size() - 1; ++idx) {
       return_val += args_[idx]->print() + ", ";
     }
     return_val += args_[args_.size() - 1]->print() + ")";
@@ -215,7 +215,7 @@ class PrototypeAST : public AST {
   std::string print() const override {
     std::string return_val;
     return_val += "PrototypeAST, Signature = " + name_ + "(";
-    for (int idx = 0; idx < args_.size() - 1; ++idx)
+    for (std::size_t idx = 0; idx < args_.size() - 1; ++idx)
       return_val += args_[idx] + ", ";
     return_val += args_[args_.size() - 1] + ")";
     return return_val;

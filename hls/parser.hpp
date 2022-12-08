@@ -58,6 +58,7 @@ class Parser {
           next_token();
           break;
         }
+        break;
       default:
         return handle_top_level();
     }
@@ -173,7 +174,7 @@ class Parser {
     auto result =
         std::make_unique<NumberExprAST>(std::stof(current_token_.value()));
     next_token();
-    return std::move(result);
+    return result;
   }
 
   /**

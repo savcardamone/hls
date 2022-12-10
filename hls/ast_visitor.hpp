@@ -6,6 +6,10 @@
 #ifndef __HLS_AST_VISITOR_HPP
 #define __HLS_AST_VISITOR_HPP
 
+#include <llvm/IR/IRBuilder.h>
+#include <llvm/IR/LLVMContext.h>
+#include <llvm/IR/Module.h>
+
 namespace hls {
 
 // Forward-declarations of all the AST nodes that our visitors need to
@@ -52,6 +56,50 @@ class ASTVisitor {
    * @brief Manipulate a FunctionAST node.
    */
   virtual void function(FunctionAST*) = 0;
+};
+
+class ASTCodegen : public ASTVisitor {
+ public:
+  ASTCodegen(std::string& name)
+      : context_{std::make_unique<llvm::LLVMContext>()} {}
+  //       builder_{std::make_unique<llvm::IRBuilder>(*context_)},
+  // module_{std::make_unique<llvm::Module>(name, *context_)} {}
+
+  /**
+   * @brief Manipulate a NumberExprAST node.
+   */
+  void number_expr(NumberExprAST* ast) override {}
+
+  /**
+   * @brief Manipulate a VariableExprAST node.
+   */
+  void variable_expr(VariableExprAST*) override{};
+
+  /**
+   * @brief Manipulate a BinaryExprAST node.
+   */
+  void binary_expr(BinaryExprAST*) override{};
+
+  /**
+   * @brief Manipulate a CallExprAST node.
+   */
+  void call_expr(CallExprAST*) override{};
+
+  /**
+   * @brief Manipulate a PrototypeAST node.
+   */
+  void prototype(PrototypeAST*) override{};
+
+  /**
+   * @brief Manipulate a FunctionAST node.
+   */
+  void function(FunctionAST*) override{};
+
+ private:
+  std::unique_ptr<llvm::LLVMContext> context_;
+  // std::unique_ptr<llvm::IRBuilder<>> builder_;
+  // std::unique_ptr<llvm::Module> module_;
+  // std::map<std::string, llvm::Value*> named_values_;
 };
 
 }  // namespace hls

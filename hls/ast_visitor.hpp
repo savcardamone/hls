@@ -60,40 +60,40 @@ class ASTVisitor {
 
 class ASTCodegen : public ASTVisitor {
  public:
-  ASTCodegen(std::string& name)
-      : context_{std::make_unique<llvm::LLVMContext>()} {}
+  ASTCodegen(std::string& name);
+  //    : context_{std::make_unique<llvm::LLVMContext>()} {}
   //       builder_{std::make_unique<llvm::IRBuilder>(*context_)},
   // module_{std::make_unique<llvm::Module>(name, *context_)} {}
 
   /**
    * @brief Manipulate a NumberExprAST node.
    */
-  void number_expr(NumberExprAST* ast) override {}
+  void number_expr(NumberExprAST* ast) override;
 
   /**
    * @brief Manipulate a VariableExprAST node.
    */
-  void variable_expr(VariableExprAST*) override{};
+  void variable_expr(VariableExprAST*) override;
 
   /**
    * @brief Manipulate a BinaryExprAST node.
    */
-  void binary_expr(BinaryExprAST*) override{};
+  void binary_expr(BinaryExprAST*) override;
 
   /**
    * @brief Manipulate a CallExprAST node.
    */
-  void call_expr(CallExprAST*) override{};
+  void call_expr(CallExprAST*) override;
 
   /**
    * @brief Manipulate a PrototypeAST node.
    */
-  void prototype(PrototypeAST*) override{};
+  void prototype(PrototypeAST*) override;
 
   /**
    * @brief Manipulate a FunctionAST node.
    */
-  void function(FunctionAST*) override{};
+  void function(FunctionAST*) override;
 
  private:
   std::unique_ptr<llvm::LLVMContext> context_;

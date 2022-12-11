@@ -11,8 +11,8 @@
 #include <string>
 #include <vector>
 
-#include "hls/ast.hpp"
-#include "hls/lexer.hpp"
+#include "ast.hpp"
+#include "lexer.hpp"
 
 namespace hls {
 

@@ -1,2 +1,7 @@
 include_directories(${LLVM_INCLUDE_DIRS})
-add_library(hls INTERFACE lexer.hpp parser.hpp ast.hpp ast_visitor.hpp)
+llvm_map_components_to_libnames(llvm_libs
+  Core
+)
+add_library(hls STATIC ast_visitor.cpp)
+target_include_directories(hls PUBLIC ${PROJECT_SOURCE_DIR})
+target_link_libraries(hls PRIVATE ${llvm_libs})

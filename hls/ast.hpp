@@ -11,7 +11,7 @@
 #include <string>
 #include <vector>
 
-#include "hls/ast_visitor.hpp"
+#include "ast_visitor.hpp"
 
 namespace hls {
 
@@ -74,6 +74,8 @@ class NumberExprAST : public ExprAST {
    */
   void accept(ASTVisitor& visitor) override { visitor.number_expr(this); }
 
+  double value() const { return val_; }
+  
  private:
   double val_;
 };

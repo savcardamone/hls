@@ -41,6 +41,11 @@ class AST {
    * @param visitor The visitor to apply to the AST node.
    */
   virtual void accept(ASTVisitor& visitor) = 0;
+
+  /**
+   * @brief Operator overload for equality of AST objects.
+   */
+  virtual bool operator==(const AST& rhs) const = 0;
 };
 
 /**
@@ -87,6 +92,20 @@ class NumberExprAST : public ExprAST {
 
   double value() const { return val_; }
 
+  /**
+   * @brief Equality overload.
+   * @param rhs The RHS of the equality condition. If the LHS and RHS aren't
+   * of the same type, then we catch the resultant exception and return false.
+   * @return True if equal, false otherwise.
+   */
+  bool operator==(const AST& rhs) const override {
+    try {
+      return val_ == dynamic_cast<const NumberExprAST&>(rhs).val_;
+    } catch (std::bad_cast&) {
+      return false;
+    }
+  }
+
  private:
   double val_;
 };
@@ -116,6 +135,20 @@ class VariableExprAST : public ExprAST {
    * @param visitor The visitor to apply to the AST node.
    */
   void accept(ASTVisitor& visitor) override { visitor.variable_expr(this); }
+
+  /**
+   * @brief Equality overload.
+   * @param rhs The RHS of the equality condition. If the LHS and RHS aren't
+   * of the same type, then we catch the resultant exception and return false.
+   * @return True if equal, false otherwise.
+   */
+  bool operator==(const AST& rhs) const override {
+    try {
+      return name_ == dynamic_cast<const VariableExprAST&>(rhs).name_;
+    } catch (std::bad_cast&) {
+      return false;
+    }
+  }
 
  private:
   std::string name_;
@@ -152,6 +185,36 @@ class BinaryExprAST : public ExprAST {
    * @param visitor The visitor to apply to the AST node.
    */
   void accept(ASTVisitor& visitor) override { visitor.binary_expr(this); }
+
+  /**
+   * @brief Equality overload.
+   *
+   * To achieve what we want here, we've had to do a bit of trickery. We can't
+   * dynamic_cast the rhs to a BinaryExprAST since that would involve an
+   * implicit copy of the two unique_ptrs that the object wraps, which clearly
+   * won't work.
+   *
+   * So, instead we just turn the equality the other way around and
+   * dispatch to the rhs's vtable entry for the == overload. If rhs is a
+   * BinaryExprAST, then it'll dispatch to the explicit operator overload below.
+   *
+   * I'm sure this is really hacky (although I'm quite impressed with myself),
+   * but since we're only using this for unit-testing, who cares.
+   * @param rhs The RHS of the equality condition.
+   * @return True if equal, false otherwise.
+   */
+  bool operator==(const AST& rhs) const override {
+    return rhs == *this ? true : false;
+  }
+
+  /**
+   * @brief Equality overload for two BinaryExprAST objects.
+   * @param The RHS BinaryExprAST of the equality condition.
+   * @return True if equal, false otherwise.
+   */
+  bool operator==(const BinaryExprAST& rhs) const {
+    return ((op_ == rhs.op_) && (*lhs_ == *rhs.lhs_) && (*rhs_ == *rhs.rhs_));
+  }
 
  private:
   char op_;
@@ -194,6 +257,29 @@ class CallExprAST : public ExprAST {
    * @param visitor The visitor to apply to the AST node.
    */
   void accept(ASTVisitor& visitor) override { visitor.call_expr(this); }
+
+  /**
+   * @brief Equality overload. See the rationale in the BinaryExprAST
+   * documentation for an explanation of how this works.
+   * @param rhs The RHS of the equality condition.
+   * @return True if equal, false otherwise.
+   */
+  bool operator==(const AST& rhs) const override {
+    return rhs == *this ? true : false;
+  }
+
+  /**
+   * @brief Equality overload for two CallExprAST objects.
+   * @param The RHS CallExprAST of the equality condition.
+   * @return True if equal, false otherwise.
+   */
+  bool operator==(const CallExprAST& rhs) const {
+    bool result = callee_ == rhs.callee_;
+    if (args_.size() != rhs.args_.size()) return false;
+    for (std::size_t idx = 0; idx < args_.size(); ++idx)
+      result &= (*args_[idx] == *rhs.args_[idx]);
+    return result;
+  }
 
  private:
   std::string callee_;
@@ -241,6 +327,26 @@ class PrototypeAST : public AST {
    */
   void accept(ASTVisitor& visitor) override { visitor.prototype(this); }
 
+  /**
+   * @brief Equality overload.
+   * @param rhs The RHS of the equality condition. If the LHS and RHS aren't
+   * of the same type, then we catch the resultant exception and return false.
+   * @return True if equal, false otherwise.
+   */
+  bool operator==(const AST& rhs) const override {
+    try {
+      auto rhs_recast = dynamic_cast<const PrototypeAST&>(rhs);
+      if (args_.size() != rhs_recast.args_.size()) return false;
+
+      bool result = name_ == rhs_recast.name_;
+      for (std::size_t idx = 0; idx < args_.size(); ++idx)
+        result &= args_[idx] == rhs_recast.args_[idx];
+      return result;
+    } catch (std::bad_cast&) {
+      return false;
+    }
+  }
+
  private:
   std::string name_;
   std::vector<std::string> args_;
@@ -278,6 +384,25 @@ class FunctionAST : public AST {
    * @param visitor The visitor to apply to the AST node.
    */
   void accept(ASTVisitor& visitor) override { visitor.function(this); }
+
+  /**
+   * @brief Equality overload. See the rationale in the BinaryExprAST
+   * documentation for an explanation of how this works.
+   * @param rhs The RHS of the equality condition.
+   * @return True if equal, false otherwise.
+   */
+  bool operator==(const AST& rhs) const override {
+    return rhs == *this ? true : false;
+  }
+
+  /**
+   * @brief Equality overload for two FunctionAST objects.
+   * @param The RHS FunctionAST of the equality condition.
+   * @return True if equal, false otherwise.
+   */
+  bool operator==(const FunctionAST& rhs) const {
+    return (*proto_ == *rhs.proto_) && (*body_ == *rhs.body_);
+  }
 
  private:
   std::unique_ptr<PrototypeAST> proto_;

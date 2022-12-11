@@ -1,12 +1,23 @@
+### Top-level project CMakeLists. Creates the `hls` library and performs
+### unit-testing.
+
 cmake_minimum_required(VERSION 3.22)
 project(hls)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 
-find_package(LLVM REQUIRED)
+# Set any compilation options based on which compiler was used
+add_compile_options("-Wall" "-Wextra") # Need to add "-Werror" at some point
+if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
+  message(STATUS "Identified Clang compiler; setting compilation flags appropriately")
+  #add_compile_options("-stdlib=libc++")
+else()
+  message(STATUS "Identified GCC compiler; setting compilation flags appropriately")
+  # nothing special for gcc at the moment
+endif()
 
+# This will provide the `hls` library
 add_subdirectory(hls)
-
-enable_testing()
+# Unit-testing of the `hls` library
 add_subdirectory(test)

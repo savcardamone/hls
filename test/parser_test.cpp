@@ -25,6 +25,15 @@ class ParserTests : public ::testing::Test {
   hls::Lexer function_lexer_;
 };
 
+TEST_F(ParserTests, TestQQ) {
+  auto a = hls::BinaryExprAST('+', std::make_unique<hls::VariableExprAST>("a"),
+                              std::make_unique<hls::VariableExprAST>("b"));
+  //auto b = hls::BinaryExprAST('+', std::make_unique<hls::VariableExprAST>("a"),
+  //                            std::make_unique<hls::VariableExprAST>("c"));
+  auto b = hls::VariableExprAST("a");
+  ASSERT_EQ(a, b);
+}
+
 TEST_F(ParserTests, TestFunctionDefinitionParsing) {
   hls::Parser parser(function_lexer_);
   auto result = parser.step();

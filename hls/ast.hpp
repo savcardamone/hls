@@ -54,7 +54,7 @@ class AST {
  * @param ast The AST node to print.
  * @return The modified output stream.
  */
-std::ostream& operator<<(std::ostream& os, const AST& ast) {
+static std::ostream& operator<<(std::ostream& os, const AST& ast) {
   os << ast.print();
   return os;
 }
@@ -69,6 +69,11 @@ class ExprAST : public AST {};
  */
 class NumberExprAST : public ExprAST {
  public:
+  /**
+   * @brief Default constructor.
+   */
+  NumberExprAST() : val_{0} {}
+
   /**
    * @brief Class constructor.
    * @param val The numeric value to initialise the expression with.
@@ -116,6 +121,11 @@ class NumberExprAST : public ExprAST {
 class VariableExprAST : public ExprAST {
  public:
   /**
+   * @brief Default constructor.
+   */
+  VariableExprAST() : name_{""} {}
+
+  /**
    * @brief Class constructor.
    * @param name Name of the variable.
    */
@@ -161,13 +171,18 @@ class VariableExprAST : public ExprAST {
 class BinaryExprAST : public ExprAST {
  public:
   /**
+   * @brief Default constructor.
+   */
+  BinaryExprAST() : op_{' '}, lhs_{nullptr}, rhs_{nullptr} {}
+
+  /**
    * @brief Class constructor.
    * @param op The binary operator.
    * @param lhs Left-hand side expression from the binary expression.
    * @param rhs Right-hand side expression from the binary expression.
    */
-  BinaryExprAST(const char op, std::unique_ptr<ExprAST> lhs,
-                std::unique_ptr<ExprAST> rhs)
+  BinaryExprAST(const char op, std::shared_ptr<ExprAST> lhs,
+                std::shared_ptr<ExprAST> rhs)
       : op_{op}, lhs_{std::move(lhs)}, rhs_{std::move(rhs)} {}
 
   /**
@@ -189,22 +204,19 @@ class BinaryExprAST : public ExprAST {
   /**
    * @brief Equality overload.
    *
-   * To achieve what we want here, we've had to do a bit of trickery. We can't
-   * dynamic_cast the rhs to a BinaryExprAST since that would involve an
-   * implicit copy of the two unique_ptrs that the object wraps, which clearly
-   * won't work.
-   *
-   * So, instead we just turn the equality the other way around and
-   * dispatch to the rhs's vtable entry for the == overload. If rhs is a
-   * BinaryExprAST, then it'll dispatch to the explicit operator overload below.
-   *
-   * I'm sure this is really hacky (although I'm quite impressed with myself),
-   * but since we're only using this for unit-testing, who cares.
+   * Attempt to cast RHS to a BinaryExprAST and perform equality check. If we
+   * get a bad cast, then the other AST isn't a BinaryExprAST, and consequently
+   * not equal to the LHS.
    * @param rhs The RHS of the equality condition.
    * @return True if equal, false otherwise.
    */
   bool operator==(const AST& rhs) const override {
-    return rhs == *this ? true : false;
+    try {
+      auto recast_rhs = dynamic_cast<const BinaryExprAST&>(rhs);
+      return *this == recast_rhs;
+    } catch (std::bad_cast&) {
+      return false;
+    }
   }
 
   /**
@@ -218,7 +230,7 @@ class BinaryExprAST : public ExprAST {
 
  private:
   char op_;
-  std::unique_ptr<ExprAST> lhs_, rhs_;
+  std::shared_ptr<ExprAST> lhs_, rhs_;
 };
 
 /**
@@ -229,12 +241,17 @@ class BinaryExprAST : public ExprAST {
 class CallExprAST : public ExprAST {
  public:
   /**
+   * @brief Default constructor.
+   */
+  CallExprAST() : callee_{""}, args_{} {}
+
+  /**
    * @brief Class constructor.
    * @param callee Identifier for the function name.
    * @param args Arguments to the function.
    */
   CallExprAST(const std::string& callee,
-              std::vector<std::unique_ptr<ExprAST>> args)
+              std::vector<std::shared_ptr<ExprAST>> args)
       : callee_{callee}, args_{std::move(args)} {}
 
   /**
@@ -259,13 +276,21 @@ class CallExprAST : public ExprAST {
   void accept(ASTVisitor& visitor) override { visitor.call_expr(this); }
 
   /**
-   * @brief Equality overload. See the rationale in the BinaryExprAST
-   * documentation for an explanation of how this works.
+   * @brief Equality overload.
+   *
+   * Attempt to cast RHS to a CallExprAST and perform equality check. If we
+   * get a bad cast, then the other AST isn't a CallExprAST, and consequently
+   * not equal to the LHS.
    * @param rhs The RHS of the equality condition.
    * @return True if equal, false otherwise.
    */
   bool operator==(const AST& rhs) const override {
-    return rhs == *this ? true : false;
+    try {
+      auto recast_rhs = dynamic_cast<const CallExprAST&>(rhs);
+      return *this == recast_rhs;
+    } catch (std::bad_cast&) {
+      return false;
+    }
   }
 
   /**
@@ -283,7 +308,7 @@ class CallExprAST : public ExprAST {
 
  private:
   std::string callee_;
-  std::vector<std::unique_ptr<ExprAST>> args_;
+  std::vector<std::shared_ptr<ExprAST>> args_;
 };
 
 /**
@@ -293,6 +318,11 @@ class CallExprAST : public ExprAST {
  */
 class PrototypeAST : public AST {
  public:
+  /**
+   * @brief Default constructor.
+   */
+  PrototypeAST() : name_{""}, args_{} {}
+
   /**
    * @brief Class constructor.
    * @param name Name of the function.
@@ -359,12 +389,17 @@ class PrototypeAST : public AST {
 class FunctionAST : public AST {
  public:
   /**
+   * @brief Default constructor.
+   */
+  FunctionAST() : proto_{nullptr}, body_{nullptr} {}
+
+  /**
    * @brief Class constructor.
    * @param proto Function prototype.
    * @param body Body of the function.
    */
-  FunctionAST(std::unique_ptr<PrototypeAST> proto,
-              std::unique_ptr<ExprAST> body)
+  FunctionAST(std::shared_ptr<PrototypeAST> proto,
+              std::shared_ptr<ExprAST> body)
       : proto_{std::move(proto)}, body_{std::move(body)} {}
 
   /**
@@ -386,13 +421,21 @@ class FunctionAST : public AST {
   void accept(ASTVisitor& visitor) override { visitor.function(this); }
 
   /**
-   * @brief Equality overload. See the rationale in the BinaryExprAST
-   * documentation for an explanation of how this works.
+   * @brief Equality overload.
+   *
+   * Attempt to cast RHS to a FunctionAST and perform equality check. If we
+   * get a bad cast, then the other AST isn't a FunctionAST, and consequently
+   * not equal to the LHS.
    * @param rhs The RHS of the equality condition.
    * @return True if equal, false otherwise.
    */
   bool operator==(const AST& rhs) const override {
-    return rhs == *this ? true : false;
+    try {
+      auto recast_rhs = dynamic_cast<const FunctionAST&>(rhs);
+      return *this == recast_rhs;
+    } catch (std::bad_cast&) {
+      return false;
+    }
   }
 
   /**
@@ -405,8 +448,8 @@ class FunctionAST : public AST {
   }
 
  private:
-  std::unique_ptr<PrototypeAST> proto_;
-  std::unique_ptr<ExprAST> body_;
+  std::shared_ptr<PrototypeAST> proto_;
+  std::shared_ptr<ExprAST> body_;
 };
 
 }  // namespace hls

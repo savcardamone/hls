@@ -8,7 +8,9 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 
 # Set any compilation options based on which compiler was used
-add_compile_options("-Wall" "-Wextra") # Need to add "-Werror" at some point
+add_compile_options(
+  "-Wall" "-Wextra" "-Werror" "-Wno-unused-function"
+  )
 if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
   message(STATUS "Identified Clang compiler; setting compilation flags appropriately")
   #add_compile_options("-stdlib=libc++")

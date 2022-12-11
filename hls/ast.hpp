@@ -15,8 +15,19 @@
 
 namespace hls {
 
+/**
+ * @brief Base class for all AST types allowing us to specify a common interface
+ * for expression ASTs *as well as* prototype and function ASTs.
+ */
 class AST {
  public:
+  /**
+   * @brief Virtual destructor. Going to be referring to a lot of things by
+   * pointer to base, and we need to be able to destroy the derived class
+   * properly, hence we create a vtable entry for the destructor.
+   */
+  virtual ~AST() {}
+
   /**
    * @brief Create string representation of object. This should be overridden by
    * anything deriving from ExprAST.
@@ -75,7 +86,7 @@ class NumberExprAST : public ExprAST {
   void accept(ASTVisitor& visitor) override { visitor.number_expr(this); }
 
   double value() const { return val_; }
-  
+
  private:
   double val_;
 };

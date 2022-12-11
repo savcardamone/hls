@@ -61,9 +61,6 @@ class ASTVisitor {
 class ASTCodegen : public ASTVisitor {
  public:
   ASTCodegen(std::string& name);
-  //    : context_{std::make_unique<llvm::LLVMContext>()} {}
-  //       builder_{std::make_unique<llvm::IRBuilder>(*context_)},
-  // module_{std::make_unique<llvm::Module>(name, *context_)} {}
 
   /**
    * @brief Manipulate a NumberExprAST node.
@@ -97,8 +94,8 @@ class ASTCodegen : public ASTVisitor {
 
  private:
   std::unique_ptr<llvm::LLVMContext> context_;
-  // std::unique_ptr<llvm::IRBuilder<>> builder_;
-  // std::unique_ptr<llvm::Module> module_;
+  std::unique_ptr<llvm::IRBuilder<>> builder_;
+  std::unique_ptr<llvm::Module> module_;
   // std::map<std::string, llvm::Value*> named_values_;
 };
 

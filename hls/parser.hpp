@@ -45,7 +45,7 @@ class Parser {
    * complete AST node.
    * @return AST node that has been parsed.
    */
-  std::unique_ptr<AST> step() {
+  std::shared_ptr<AST> step() {
     switch (current_token_.type()) {
       case TokenType::tok_eof:
         return nullptr;
@@ -75,7 +75,7 @@ class Parser {
    * @brief Parse an extern function declaration. Recovers from any internal
    * errors by ignoring erroneous parsing and moving onto next expression.
    */
-  std::unique_ptr<AST> handle_extern() {
+  std::shared_ptr<AST> handle_extern() {
     if (auto result = parse_extern()) {
       std::cout << "Parsed extern." << std::endl;
       return result;
@@ -89,7 +89,7 @@ class Parser {
    * @brief Parse a function definition. Recovers from any internal
    * errors by ignoring erroneous parsing and moving onto next expression.
    */
-  std::unique_ptr<AST> handle_definition() {
+  std::shared_ptr<AST> handle_definition() {
     if (auto result = parse_definition()) {
       std::cout << "Parsed function definition." << std::endl;
       return result;
@@ -103,7 +103,7 @@ class Parser {
    * @brief Parse a top-level definition. Recovers from any internal
    * errors by ignoring erroneous parsing and moving onto next expression.
    */
-  std::unique_ptr<AST> handle_top_level() {
+  std::shared_ptr<AST> handle_top_level() {
     if (auto result = parse_top_level()) {
       std::cout << "Parsed top-level." << std::endl;
       return result;
@@ -118,7 +118,7 @@ class Parser {
    * @param message Message to print to stderr.
    * @return ExprAST unique pointer that just wraps nullptr.
    */
-  std::unique_ptr<ExprAST> expr_error(const std::string& message) {
+  std::shared_ptr<ExprAST> expr_error(const std::string& message) {
     std::cerr << message << std::endl;
     return nullptr;
   }
@@ -128,7 +128,7 @@ class Parser {
    * @param message Message to print to stderr.
    * @return PrototypeAST unique pointer that just wraps nullptr.
    */
-  std::unique_ptr<PrototypeAST> proto_error(const std::string& message) {
+  std::shared_ptr<PrototypeAST> proto_error(const std::string& message) {
     expr_error(message);
     return nullptr;
   }
@@ -149,7 +149,7 @@ class Parser {
    * or parenthetical expression.
    * @return The primary expression AST node.
    */
-  std::unique_ptr<ExprAST> parse_primary() {
+  std::shared_ptr<ExprAST> parse_primary() {
     switch (current_token_.type()) {
       default:
         return nullptr;
@@ -168,11 +168,11 @@ class Parser {
    * node.
    * @return The numerical expression AST node.
    */
-  std::unique_ptr<ExprAST> parse_number_expr() {
+  std::shared_ptr<ExprAST> parse_number_expr() {
     // Retrieve the numerical token in the token buffer and create an AST
     // node with it
     auto result =
-        std::make_unique<NumberExprAST>(std::stof(current_token_.value()));
+        std::make_shared<NumberExprAST>(std::stof(current_token_.value()));
     next_token();
     return result;
   }
@@ -181,7 +181,7 @@ class Parser {
    * @brief Parse the contents from a parenthetical expression.
    * @return The expression AST node.
    */
-  std::unique_ptr<ExprAST> parse_parentheses_expr() {
+  std::shared_ptr<ExprAST> parse_parentheses_expr() {
     // Have already encountered '(', so move past it
     next_token();
 
@@ -207,7 +207,7 @@ class Parser {
    *    (2) Function call, in which case return the call AST node.
    * @return The identifier expression AST node.
    */
-  std::unique_ptr<ExprAST> parse_identifier_expr() {
+  std::shared_ptr<ExprAST> parse_identifier_expr() {
     // Retrieve the identifier name, and move on to the rest of the
     // statement
     std::string name = current_token_.value();
@@ -216,11 +216,11 @@ class Parser {
     // If next token isn't an opening parenthesis, then we must be parsing
     // a basic variable expression rather than function call
     if (current_token_.value() != "(")
-      return std::make_unique<VariableExprAST>(name);
+      return std::make_shared<VariableExprAST>(name);
 
     // Otherwise we have a function call
     next_token();
-    std::vector<std::unique_ptr<ExprAST>> args;
+    std::vector<std::shared_ptr<ExprAST>> args;
 
     // While we haven't encountered the closing parenthesis, continue
     // parsing the expression
@@ -246,7 +246,7 @@ class Parser {
 
     // Eat the closing ')' and return out call expression
     next_token();
-    return std::make_unique<CallExprAST>(name, std::move(args));
+    return std::make_shared<CallExprAST>(name, std::move(args));
   }
 
   // ==========================================================================
@@ -276,7 +276,7 @@ class Parser {
    * is also a primary).
    * @return The expression AST node.
    */
-  std::unique_ptr<ExprAST> parse_expression() {
+  std::shared_ptr<ExprAST> parse_expression() {
     auto lhs = parse_primary();
     if (!lhs) return expr_error("Couldn't parse LHS in expression.");
 
@@ -294,8 +294,8 @@ class Parser {
    * @param lhs
    * @return
    */
-  std::unique_ptr<ExprAST> parse_binop_rhs(int expr_precedence,
-                                           std::unique_ptr<ExprAST> lhs) {
+  std::shared_ptr<ExprAST> parse_binop_rhs(int expr_precedence,
+                                           std::shared_ptr<ExprAST> lhs) {
     // Keep on eating the full expression
     while (1) {
       // If we have a binop as the current token, then retrieve a precedence >=
@@ -336,7 +336,7 @@ class Parser {
           return expr_error("Couldn't find RHS in recursive binop search.");
       }
 
-      lhs = std::make_unique<BinaryExprAST>(*binop.value().c_str(),
+      lhs = std::make_shared<BinaryExprAST>(*binop.value().c_str(),
                                             std::move(lhs), std::move(rhs));
     }
   }
@@ -346,7 +346,7 @@ class Parser {
    * ...).
    * @return Prototype AST node.
    */
-  std::unique_ptr<PrototypeAST> parse_prototype() {
+  std::shared_ptr<PrototypeAST> parse_prototype() {
     // Prototype must start with an identifier; eat the function name if so
     if (current_token_.type() != TokenType::tok_identifier)
       return proto_error("Prototype must begin with an identifier.");
@@ -368,7 +368,7 @@ class Parser {
       return proto_error("Prototype arguments must be ended with parenthesis.");
     next_token();
 
-    return std::make_unique<PrototypeAST>(function_name, std::move(arg_names));
+    return std::make_shared<PrototypeAST>(function_name, std::move(arg_names));
   }
 
   /**
@@ -377,7 +377,7 @@ class Parser {
    * comprising a prototype and function body.
    * @return Function definintion AST.
    */
-  std::unique_ptr<FunctionAST> parse_definition() {
+  std::shared_ptr<FunctionAST> parse_definition() {
     // Eat the def keyword
     next_token();
 
@@ -388,7 +388,7 @@ class Parser {
     // Parse the function expression and return the function AST node if we've
     // been able to retrieve a valid expression
     if (auto expr = parse_expression()) {
-      return std::make_unique<FunctionAST>(std::move(proto), std::move(expr));
+      return std::make_shared<FunctionAST>(std::move(proto), std::move(expr));
     }
 
     return nullptr;
@@ -399,7 +399,7 @@ class Parser {
    * extern func_name(arg1, arg2, ...).
    * @return Prototype AST.
    */
-  std::unique_ptr<PrototypeAST> parse_extern() {
+  std::shared_ptr<PrototypeAST> parse_extern() {
     // Eat the extern keywork
     next_token();
     return parse_prototype();
@@ -410,12 +410,12 @@ class Parser {
    * anonymous function without name.
    * @return Function definition AST.
    */
-  std::unique_ptr<FunctionAST> parse_top_level() {
+  std::shared_ptr<FunctionAST> parse_top_level() {
     if (auto expr = parse_expression()) {
       // Prototype is completely anonymous; no name or arguments
       auto proto =
-          std::make_unique<PrototypeAST>("", std::vector<std::string>());
-      return std::make_unique<FunctionAST>(std::move(proto), std::move(expr));
+          std::make_shared<PrototypeAST>("", std::vector<std::string>());
+      return std::make_shared<FunctionAST>(std::move(proto), std::move(expr));
     }
     return nullptr;
   }

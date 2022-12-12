@@ -356,7 +356,8 @@ class Parser {
     if (current_token_.value() != "(")
       return proto_error(
           "Prototype arguments must be separated from identifier by "
-          "parenthesis.");
+          "parenthesis, got " +
+          current_token_.value());
 
     // Eat up all arguments; note that these are not comma-delimited
     std::vector<std::string> arg_names;
@@ -365,7 +366,9 @@ class Parser {
     }
 
     if (current_token_.value() != ")")
-      return proto_error("Prototype arguments must be ended with parenthesis.");
+      return proto_error(
+          "Prototype arguments must be ended with parenthesis, got " +
+          current_token_.value());
     next_token();
 
     return std::make_shared<PrototypeAST>(function_name, std::move(arg_names));

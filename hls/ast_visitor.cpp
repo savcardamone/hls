@@ -21,20 +21,72 @@ ASTCodegen::ASTCodegen(std::string& name)
       builder_{std::make_unique<llvm::IRBuilder<>>(*context_)},
       module_{std::make_unique<llvm::Module>(name, *context_)} {}
 
-void ASTCodegen::number_expr(NumberExprAST* ast) {
-  auto val = llvm::ConstantFP::get(*context_, llvm::APFloat(ast->value()));
-  // Temporary to stop the unused variable error
-  val->print(llvm::errs());
+void ASTCodegen::number_expr(NumberExprAST& ast) {
+  value_ = llvm::ConstantFP::get(*context_, llvm::APFloat(ast.value()));
+  value_->print(llvm::errs());
 }
 
-void ASTCodegen::variable_expr(VariableExprAST*) {}
+void ASTCodegen::variable_expr(VariableExprAST& ast) {
+  auto val = named_values_[ast.name()];
+  value_ = val ? val : nullptr;
+  value_->print(llvm::errs());
+}
 
-void ASTCodegen::binary_expr(BinaryExprAST*) {}
+void ASTCodegen::binary_expr(BinaryExprAST& ast) {
+  ast.lhs()->accept(*this);
+  auto lhs = value_;
+  ast.rhs()->accept(*this);
+  auto rhs = value_;
 
-void ASTCodegen::call_expr(CallExprAST*) {}
+  if (!(lhs || rhs)) value_ = nullptr;
+  switch (ast.op()) {
+    case '+': {
+      value_ = builder_->CreateFAdd(lhs, rhs, "addtmp");
+      break;
+    }
+    case '-': {
+      value_ = builder_->CreateFSub(lhs, rhs, "subtmp");
+      break;
+    }
+    case '*': {
+      value_ = builder_->CreateFMul(lhs, rhs, "multmp");
+      break;
+    }
+    case '<': {
+      auto tmp_lhs = builder_->CreateFCmpULT(lhs, rhs, "cmptmp");
+      value_ = builder_->CreateUIToFP(
+          tmp_lhs, llvm::Type::getDoubleTy(*context_), "booltmp");
+      break;
+    }
+    default:
+      value_ = nullptr;
+  }
+  value_->print(llvm::errs());
+}
 
-void ASTCodegen::prototype(PrototypeAST*) {}
+void ASTCodegen::call_expr(CallExprAST& ast) {
+  llvm::Function* callee = module_->getFunction(ast.callee());
 
-void ASTCodegen::function(FunctionAST*) {}
+  if (!callee) {
+    value_ = nullptr;
+    return;
+  }
+  if (callee->arg_size() != ast.args().size()) {
+    value_ = nullptr;
+    return;
+  }
+
+  std::vector<llvm::Value*> args;
+  for (auto arg : ast.args()) {
+    arg->accept(*this);
+    args.push_back(value_);
+  }
+
+  value_ = builder_->CreateCall(callee, args, "calltmp");
+}
+
+void ASTCodegen::prototype(PrototypeAST& ast) {}
+
+void ASTCodegen::function(FunctionAST& ast) {}
 
 }  // namespace hls

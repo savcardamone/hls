@@ -10,6 +10,8 @@
 #include <llvm/IR/LLVMContext.h>
 #include <llvm/IR/Module.h>
 
+#include <map>
+
 namespace hls {
 
 // Forward-declarations of all the AST nodes that our visitors need to
@@ -30,32 +32,32 @@ class ASTVisitor {
   /**
    * @brief Manipulate a NumberExprAST node.
    */
-  virtual void number_expr(NumberExprAST*) = 0;
+  virtual void number_expr(NumberExprAST&) = 0;
 
   /**
    * @brief Manipulate a VariableExprAST node.
    */
-  virtual void variable_expr(VariableExprAST*) = 0;
+  virtual void variable_expr(VariableExprAST&) = 0;
 
   /**
    * @brief Manipulate a BinaryExprAST node.
    */
-  virtual void binary_expr(BinaryExprAST*) = 0;
+  virtual void binary_expr(BinaryExprAST&) = 0;
 
   /**
    * @brief Manipulate a CallExprAST node.
    */
-  virtual void call_expr(CallExprAST*) = 0;
+  virtual void call_expr(CallExprAST&) = 0;
 
   /**
    * @brief Manipulate a PrototypeAST node.
    */
-  virtual void prototype(PrototypeAST*) = 0;
+  virtual void prototype(PrototypeAST&) = 0;
 
   /**
    * @brief Manipulate a FunctionAST node.
    */
-  virtual void function(FunctionAST*) = 0;
+  virtual void function(FunctionAST&) = 0;
 };
 
 class ASTCodegen : public ASTVisitor {
@@ -65,38 +67,41 @@ class ASTCodegen : public ASTVisitor {
   /**
    * @brief Manipulate a NumberExprAST node.
    */
-  void number_expr(NumberExprAST* ast) override;
+  void number_expr(NumberExprAST& ast) override;
 
   /**
    * @brief Manipulate a VariableExprAST node.
    */
-  void variable_expr(VariableExprAST*) override;
+  void variable_expr(VariableExprAST& ast) override;
 
   /**
    * @brief Manipulate a BinaryExprAST node.
    */
-  void binary_expr(BinaryExprAST*) override;
+  void binary_expr(BinaryExprAST& ast) override;
 
   /**
    * @brief Manipulate a CallExprAST node.
    */
-  void call_expr(CallExprAST*) override;
+  void call_expr(CallExprAST& ast) override;
 
   /**
    * @brief Manipulate a PrototypeAST node.
    */
-  void prototype(PrototypeAST*) override;
+  void prototype(PrototypeAST& ast) override;
 
   /**
    * @brief Manipulate a FunctionAST node.
    */
-  void function(FunctionAST*) override;
+  void function(FunctionAST& ast) override;
 
  private:
   std::unique_ptr<llvm::LLVMContext> context_;
   std::unique_ptr<llvm::IRBuilder<>> builder_;
   std::unique_ptr<llvm::Module> module_;
-  // std::map<std::string, llvm::Value*> named_values_;
+  std::map<std::string, llvm::Value*> named_values_;
+  // Caches since the return type of a visitor must be void
+  llvm::Value* value_;
+  llvm::Function* function_;
 };
 
 }  // namespace hls

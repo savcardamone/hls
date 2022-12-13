@@ -81,6 +81,12 @@ class NumberExprAST : public ExprAST {
   NumberExprAST(const double& val) : val_{val} {}
 
   /**
+   * @brief Getter for the underying value.
+   * @return AST value.
+   */
+  double value() const { return val_; }
+
+  /**
    * @brief Overload of the string representation method for the object.
    * @return String representation of the object.
    */
@@ -93,9 +99,7 @@ class NumberExprAST : public ExprAST {
    * object.
    * @param visitor The visitor to apply to the AST node.
    */
-  void accept(ASTVisitor& visitor) override { visitor.number_expr(this); }
-
-  double value() const { return val_; }
+  void accept(ASTVisitor& visitor) override { visitor.number_expr(*this); }
 
   /**
    * @brief Equality overload.
@@ -132,6 +136,12 @@ class VariableExprAST : public ExprAST {
   VariableExprAST(const std::string& name) : name_{name} {}
 
   /**
+   * @brief Getter for the underying name.
+   * @return AST name.
+   */
+  std::string name() const { return name_; }
+
+  /**
    * @brief Overload of the string representation method for the object.
    * @return String representation of the object.
    */
@@ -144,7 +154,7 @@ class VariableExprAST : public ExprAST {
    * object.
    * @param visitor The visitor to apply to the AST node.
    */
-  void accept(ASTVisitor& visitor) override { visitor.variable_expr(this); }
+  void accept(ASTVisitor& visitor) override { visitor.variable_expr(*this); }
 
   /**
    * @brief Equality overload.
@@ -186,6 +196,24 @@ class BinaryExprAST : public ExprAST {
       : op_{op}, lhs_{std::move(lhs)}, rhs_{std::move(rhs)} {}
 
   /**
+   * @brief Getter for the underying operator.
+   * @return AST operator.
+   */
+  char op() const { return op_; }
+
+  /**
+   * @brief Getter for the LHS expression.
+   * @return LHS expression.
+   */
+  std::shared_ptr<ExprAST> lhs() const { return lhs_; }
+
+  /**
+   * @brief Getter for the RHS expression.
+   * @return RHS expression.
+   */
+  std::shared_ptr<ExprAST> rhs() const { return rhs_; }
+
+  /**
    * @brief Overload of the string representation method for the object.
    * @return String representation of the object.
    */
@@ -199,7 +227,7 @@ class BinaryExprAST : public ExprAST {
    * object.
    * @param visitor The visitor to apply to the AST node.
    */
-  void accept(ASTVisitor& visitor) override { visitor.binary_expr(this); }
+  void accept(ASTVisitor& visitor) override { visitor.binary_expr(*this); }
 
   /**
    * @brief Equality overload.
@@ -255,6 +283,18 @@ class CallExprAST : public ExprAST {
       : callee_{callee}, args_{std::move(args)} {}
 
   /**
+   * @brief Getter for the callee.
+   * @return Callee name.
+   */
+  std::string callee() const { return callee_; }
+
+  /**
+   * @brief Getter for the call arguments.
+   * @return Arguments.
+   */
+  std::vector<std::shared_ptr<ExprAST>> args() const { return args_; }
+
+  /**
    * @brief Overload of the string representation method for the object.
    * @return String representation of the object.
    */
@@ -273,7 +313,7 @@ class CallExprAST : public ExprAST {
    * object.
    * @param visitor The visitor to apply to the AST node.
    */
-  void accept(ASTVisitor& visitor) override { visitor.call_expr(this); }
+  void accept(ASTVisitor& visitor) override { visitor.call_expr(*this); }
 
   /**
    * @brief Equality overload.
@@ -338,6 +378,12 @@ class PrototypeAST : public AST {
   const std::string& name() const { return name_; }
 
   /**
+   * @brief Getter for the args.
+   * @return Arguments.
+   */
+  std::vector<std::string> args() const { return args_; }
+
+  /**
    * @brief Overload of the string representation method for the object.
    * @return String representation of the object.
    */
@@ -355,7 +401,7 @@ class PrototypeAST : public AST {
    * object.
    * @param visitor The visitor to apply to the AST node.
    */
-  void accept(ASTVisitor& visitor) override { visitor.prototype(this); }
+  void accept(ASTVisitor& visitor) override { visitor.prototype(*this); }
 
   /**
    * @brief Equality overload.
@@ -403,6 +449,18 @@ class FunctionAST : public AST {
       : proto_{std::move(proto)}, body_{std::move(body)} {}
 
   /**
+   * @brief Getter for the prototype.
+   * @return Prototype.
+   */
+  std::shared_ptr<PrototypeAST> proto() const { return proto_; }
+
+  /**
+   * @brief Getter for the function body.
+   * @return Function body.
+   */
+  std::shared_ptr<ExprAST> body() const { return body_; }
+
+  /**
    * @brief Overload of the string representation method for the object.
    * @return String representation of the object.
    */
@@ -418,7 +476,7 @@ class FunctionAST : public AST {
    * object.
    * @param visitor The visitor to apply to the AST node.
    */
-  void accept(ASTVisitor& visitor) override { visitor.function(this); }
+  void accept(ASTVisitor& visitor) override { visitor.function(*this); }
 
   /**
    * @brief Equality overload.

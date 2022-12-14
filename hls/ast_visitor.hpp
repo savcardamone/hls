@@ -9,8 +9,10 @@
 #include <llvm/IR/IRBuilder.h>
 #include <llvm/IR/LLVMContext.h>
 #include <llvm/IR/Module.h>
+#include <llvm/IR/Verifier.h>
 
 #include <map>
+#include <ostream>
 
 namespace hls {
 
@@ -62,39 +64,52 @@ class ASTVisitor {
 
 class ASTCodegen : public ASTVisitor {
  public:
-  ASTCodegen(std::string& name);
+  /**
+   * @brief Class constructor.
+   * @param name Name of the IR module.
+   * @param incremental_print Whether to incrementally print the IR generation
+   * of each AST when processed. Default is false. Will be dumped to std::cerr.
+   */
+  ASTCodegen(std::string& name, bool incremental_print = false);
 
   /**
-   * @brief Manipulate a NumberExprAST node.
+   * @brief Generate the LLVM IR for a NumberExprAST node.
+   * @param ast The AST to generate IR for.
    */
   void number_expr(NumberExprAST& ast) override;
 
   /**
-   * @brief Manipulate a VariableExprAST node.
+   * @brief Generate the LLVM IR for a VariableExprAST node.
+   * @param ast The AST to generate IR for.
    */
   void variable_expr(VariableExprAST& ast) override;
 
   /**
-   * @brief Manipulate a BinaryExprAST node.
+   * @brief Generate the LLVM IR for a BinaryExprAST node.
+   * @param ast The AST to generate IR for.
    */
   void binary_expr(BinaryExprAST& ast) override;
 
   /**
-   * @brief Manipulate a CallExprAST node.
+   * @brief Generate the LLVM IR for a CallExprAST node.
+   * @param ast The AST to generate IR for.
    */
   void call_expr(CallExprAST& ast) override;
 
   /**
-   * @brief Manipulate a PrototypeAST node.
+   * @brief Generate the LLVM IR for a PrototypeAST node.
+   * @param ast The AST to generate IR for.
    */
   void prototype(PrototypeAST& ast) override;
 
   /**
-   * @brief Manipulate a FunctionAST node.
+   * @brief Generate the LLVM IR for a FunctionAST node.
+   * @param ast The AST to generate IR for.
    */
   void function(FunctionAST& ast) override;
 
  private:
+  bool incremental_print_;
   std::unique_ptr<llvm::LLVMContext> context_;
   std::unique_ptr<llvm::IRBuilder<>> builder_;
   std::unique_ptr<llvm::Module> module_;
@@ -102,6 +117,7 @@ class ASTCodegen : public ASTVisitor {
   // Caches since the return type of a visitor must be void
   llvm::Value* value_;
   llvm::Function* function_;
+  friend std::ostream& operator<<(std::ostream& os, ASTCodegen& ast_codegen);
 };
 
 }  // namespace hls

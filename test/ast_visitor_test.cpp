@@ -6,15 +6,26 @@
 // clang-format off
 #include <gtest/gtest.h>
 
-#include "hls/ast.hpp"
+#include "test/ast_test.hpp"
 #include "hls/ast_visitor.hpp"
 // clang-format on
 
-TEST(ASTVisitorTests, Codegen) {
+/**
+ * @brief ASTCodegen visitor Fixture for ASTs. Inherit all the ASTs
+ * that are used in unit-testing the ASTs.
+ */
+class ASTCodegenTests : public ASTTests {
+ protected:
+  ASTCodegenTests() : ASTTests() {}
+  ~ASTCodegenTests() {}
+};
 
-  auto expr = hls::NumberExprAST(3.14);
+/**
+ * @brief QQ
+ */
+TEST_F(ASTCodegenTests, Codegen) {
   std::string name("HLS");
   hls::ASTCodegen visitor(name);
-  expr.accept(visitor);
-  
+  function_ast_.accept(visitor);
+  std::cout << visitor << std::endl;
 }

@@ -5,9 +5,9 @@
 cd "$(dirname "${BASH_SOURCE[0]}")"
 
 # Clean up any existing build and remake everything
-rm -rf build
+rm -rf build/*
 cmake \
     -DCMAKE_C_COMPILER="/usr/local/bin/clang" -DCMAKE_CXX_COMPILER="/usr/local/bin/clang++" \
     -S . -B build
 cmake --build build
-cd build/test && ctest
+cd build/test && ctest --verbose

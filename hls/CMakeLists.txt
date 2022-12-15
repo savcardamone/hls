@@ -1,7 +1,7 @@
 # Retrieve the LLVM dependency and get the libraries that we need
 find_package(LLVM REQUIRED)
 llvm_map_components_to_libnames(llvm_libs
-  Core
+  Core ScalarOpts
   )
 
 add_library(hls STATIC ast_visitor.cpp)

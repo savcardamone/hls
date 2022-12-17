@@ -25,6 +25,7 @@ namespace hls {
 class NumberExprAST;
 class VariableExprAST;
 class BinaryExprAST;
+class IfExprAST;
 class CallExprAST;
 class PrototypeAST;
 class FunctionAST;
@@ -49,6 +50,11 @@ class ASTVisitor {
    * @brief Manipulate a BinaryExprAST node.
    */
   virtual void binary_expr(BinaryExprAST&) = 0;
+
+  /**
+   * @brief Manipulate a IfExprAST node.
+   */
+  virtual void if_expr(IfExprAST&) = 0;
 
   /**
    * @brief Manipulate a CallExprAST node.
@@ -95,6 +101,12 @@ class ASTCodegen : public ASTVisitor {
   void binary_expr(BinaryExprAST& ast) override;
 
   /**
+   * @brief Generate the LLVM IR for a BinaryExprAST node.
+   * @param ast The AST to generate IR for.
+   */
+  void if_expr(IfExprAST& ast) override;
+
+  /**
    * @brief Generate the LLVM IR for a CallExprAST node.
    * @param ast The AST to generate IR for.
    */
@@ -122,6 +134,7 @@ class ASTCodegen : public ASTVisitor {
   // Caches since the return type of a visitor must be void
   llvm::Value* value_;
   llvm::Function* function_;
+  llvm::PHINode* phi_;
   friend std::ostream& operator<<(std::ostream& os, ASTCodegen& ast_codegen);
 };
 

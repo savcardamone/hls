@@ -25,7 +25,11 @@ enum class TokenType {
   // Primary
   tok_identifier,  //< Identifier (i.e. variable name)
   tok_number,      //< Numerical value
-  tok_operator     //< Operator token
+  tok_operator,    //< Operator token
+  // Control
+  tok_if,    //< If condition
+  tok_then,  //< Execute if condition true
+  tok_else   //< Execute if condition false
 };
 
 /**
@@ -58,6 +62,18 @@ static std::ostream& operator<<(std::ostream& os, const TokenType& type) {
     }
     case TokenType::tok_operator: {
       os << "Token Type: Operator";
+      break;
+    }
+    case TokenType::tok_if: {
+      os << "Token Type: If";
+      break;
+    }
+    case TokenType::tok_then: {
+      os << "Token Type: Then";
+      break;
+    }
+    case TokenType::tok_else: {
+      os << "Token Type: Else";
       break;
     }
     default:
@@ -158,6 +174,12 @@ class Lexer {
         return Token(TokenType::tok_def);
       } else if (identifier_string == "extern") {
         return Token(TokenType::tok_extern);
+      } else if (identifier_string == "if") {
+        return Token(TokenType::tok_if);
+      } else if (identifier_string == "then") {
+        return Token(TokenType::tok_then);
+      } else if (identifier_string == "else") {
+        return Token(TokenType::tok_else);
       }
       // If the token wasn't a keyword, it was an identifier
       return Token(TokenType::tok_identifier, identifier_string);

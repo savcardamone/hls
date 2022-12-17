@@ -249,7 +249,7 @@ class BinaryExprAST : public ExprAST {
 
   /**
    * @brief Equality overload for two BinaryExprAST objects.
-   * @param The RHS BinaryExprAST of the equality condition.
+   * @param rhs The RHS BinaryExprAST of the equality condition.
    * @return True if equal, false otherwise.
    */
   bool operator==(const BinaryExprAST& rhs) const {
@@ -259,6 +259,89 @@ class BinaryExprAST : public ExprAST {
  private:
   char op_;
   std::shared_ptr<ExprAST> lhs_, rhs_;
+};
+
+/**
+ * @brief Expression AST for if-then-else control flow.
+ */
+class IfExprAST : public ExprAST {
+ public:
+  /**
+   * @brief Class constructor.
+   * @param cond The condition expression.
+   * @param then_expr Expression when condition is true.
+   * @param else_expr Expression when condition is false.
+   */
+  IfExprAST(std::shared_ptr<ExprAST> cond, std::shared_ptr<ExprAST> then_expr,
+            std::shared_ptr<ExprAST> else_expr)
+      : cond_{std::move(cond)},
+        then_expr_{std::move(then_expr)},
+        else_expr_{std::move(else_expr)} {}
+
+  /**
+   * @brief Overload of the string representation method for the object.
+   * @return String representation of the object.
+   */
+  std::string print() const override {
+    return "IfExprAST: Condition = (" + cond_->print() + "), Then = (" +
+           then_expr_->print() + "), Else = (" + else_expr_->print() + ")";
+  }
+
+  /**
+   * @brief Getter for the condition expression.
+   * @return Condition expression.
+   */
+  std::shared_ptr<ExprAST> cond() const { return cond_; }
+
+  /**
+   * @brief Getter for the then expression.
+   * @return Then expression.
+   */
+  std::shared_ptr<ExprAST> then_expr() const { return then_expr_; }
+
+  /**
+   * @brief Getter for the else expression.
+   * @return Else expression.
+   */
+  std::shared_ptr<ExprAST> else_expr() const { return else_expr_; }
+
+  /**
+   * @brief Accept an ASTVisitor instance to manipulate the IfExprAST
+   * object.
+   * @param visitor The visitor to apply to the AST node.
+   */
+  void accept(ASTVisitor& visitor) override { visitor.if_expr(*this); }
+
+  /**
+   * @brief Equality overload.
+   *
+   * Attempt to cast RHS to a IfExprAST and perform equality check. If we
+   * get a bad cast, then the other AST isn't a IfExprAST, and consequently
+   * not equal to the LHS.
+   * @param rhs The RHS of the equality condition.
+   * @return True if equal, false otherwise.
+   */
+  bool operator==(const AST& rhs) const override {
+    try {
+      auto recast_rhs = dynamic_cast<const IfExprAST&>(rhs);
+      return *this == recast_rhs;
+    } catch (std::bad_cast&) {
+      return false;
+    }
+  }
+
+  /**
+   * @brief Equality overload for two IfExprAST objects.
+   * @param rhs The RHS IfExprAST of the equality condition.
+   * @return True if equal, false otherwise.
+   */
+  bool operator==(const IfExprAST& rhs) const {
+    return ((*cond_ == *rhs.cond_) && (*then_expr_ == *rhs.then_expr_) &&
+            (*else_expr_ == *rhs.else_expr_));
+  }
+
+ private:
+  std::shared_ptr<ExprAST> cond_, then_expr_, else_expr_;
 };
 
 /**

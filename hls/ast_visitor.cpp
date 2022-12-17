@@ -28,7 +28,6 @@ ASTCodegen::ASTCodegen(std::string& name, bool incremental_print)
       builder_{std::make_unique<llvm::IRBuilder<>>(*context_)},
       module_{std::make_unique<llvm::Module>(name, *context_)},
       fpm_{std::make_unique<llvm::legacy::FunctionPassManager>(module_.get())} {
-
   // Initialise the function pass manager to enable optimisations; you can find
   // these listed at https://llvm.org/docs/Passes.html. As the name suggests,
   // these optimisations are run per-function as opposed to the entire IR
@@ -36,11 +35,11 @@ ASTCodegen::ASTCodegen(std::string& name, bool incremental_print)
   // Instruction-combining pass to create simpler expressions, e.g.
   // (y = x + 1); (z = y + 1) => (z = x + 2)
   fpm_->add(llvm::createInstructionCombiningPass());
-  
-  // Reassociate expressions to facilitate better constant propagation, etc., e.g.
-  // 4 + (x + 5) => x + (4 + 5)
-  // Different expression types are ranked differently to do the reassociation, e.g.
-  // constants have rank 0, function calls rank 1, etc.
+
+  // Reassociate expressions to facilitate better constant propagation, etc.,
+  // e.g. 4 + (x + 5) => x + (4 + 5) Different expression types are ranked
+  // differently to do the reassociation, e.g. constants have rank 0, function
+  // calls rank 1, etc.
   fpm_->add(llvm::createReassociatePass());
 
   // Global-Value numbering pass eliminates redundant instructions
@@ -118,6 +117,70 @@ void ASTCodegen::binary_expr(BinaryExprAST& ast) {
     value_->print(llvm::errs());
     std::cout << std::endl;
   }
+}
+
+void ASTCodegen::if_expr(IfExprAST& ast) {
+  // First of all we generate the IR for the condition of the if expression
+  ast.cond()->accept(*this);
+  llvm::Value* cond = value_;
+  if (!cond) {
+    value_ = nullptr;
+    std::cerr << "Couldn't generate IR for if-condition.\n";
+    return;
+  }
+
+  // Check whether condition is not-equal to zero
+  cond = builder_->CreateFCmpONE(
+      cond, llvm::ConstantFP::get(*context_, llvm::APFloat(0.0)), "ifcond");
+
+  // Get the function that we're evaluating this control flow in
+  llvm::Function* function = builder_->GetInsertBlock()->getParent();
+
+  // Create basic blocks for the two paths
+  llvm::BasicBlock* then_bb =
+      llvm::BasicBlock::Create(*context_, "then", function);
+  llvm::BasicBlock* else_bb =
+      llvm::BasicBlock::Create(*context_, "else", function);
+  // Create basic blocks for the merged path once then/else has completed;
+  // this will have the phi node in it
+  llvm::BasicBlock* merge_bb =
+      llvm::BasicBlock::Create(*context_, "ifcont", function);
+
+  // Branch on the condition
+  builder_->CreateCondBr(cond, then_bb, else_bb);
+
+  // Insert the "then" block IR into the builder
+  builder_->SetInsertPoint(then_bb);
+  ast.then_expr()->accept(*this);
+  llvm::Value* then_expr = value_;
+  if (!then_expr) {
+    value_ = nullptr;
+    std::cerr << "Couldn't generate IR for then expression.\n";
+    return;
+  }
+  // Unconditional branch to the merge block at the end of the "then"
+  builder_->CreateBr(merge_bb);
+  // Phi needs entry point for the "then" block when we set it up
+  then_bb = builder_->GetInsertBlock();
+
+  // Insert the "else" block IR into the builder
+  builder_->SetInsertPoint(else_bb);
+  ast.else_expr()->accept(*this);
+  llvm::Value* else_expr = value_;
+  if (!else_expr) {
+    value_ = nullptr;
+    std::cerr << "Couldn't generate IR for else expression.\n";
+    return;
+  }
+  builder_->CreateBr(merge_bb);
+  else_bb = builder_->GetInsertBlock();
+
+  builder_->SetInsertPoint(merge_bb);
+  llvm::PHINode* phi_node =
+      builder_->CreatePHI(llvm::Type::getDoubleTy(*context_), 2, "iftmp");
+  phi_node->addIncoming(then_expr, then_bb);
+  phi_node->addIncoming(else_expr, else_bb);
+  phi_ = phi_node;
 }
 
 void ASTCodegen::call_expr(CallExprAST& ast) {

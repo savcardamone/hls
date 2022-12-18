@@ -157,6 +157,8 @@ class Parser {
         return parse_identifier_expr();
       case TokenType::tok_number:
         return parse_number_expr();
+      case TokenType::tok_if:
+        return parse_if_expr();
       case TokenType::tok_operator:
         if (current_token_.value() == "(") return parse_parentheses_expr();
     }
@@ -247,6 +249,36 @@ class Parser {
     // Eat the closing ')' and return out call expression
     next_token();
     return std::make_shared<CallExprAST>(name, std::move(args));
+  }
+
+  /**
+   * @brief Parse control flow if-then-else expression.
+   * @return The if-expression AST node.
+   */
+  std::shared_ptr<ExprAST> parse_if_expr() {
+    // Eat the "if"
+    next_token();
+
+    // Get the condition
+    auto cond = parse_expression();
+    if (!cond) return expr_error("Couldn't parse condition.");
+
+    if (current_token_.type() != TokenType::tok_then)
+      return expr_error("Expected then token after condition.");
+    // Eat the "then"
+    next_token();
+    auto then_expr = parse_expression();
+    if (!then_expr) return expr_error("Couldn't parse then expression");
+
+    if (current_token_.type() != TokenType::tok_else)
+      return expr_error("Expected else token after then expression.");
+    // Eat the "else"
+    next_token();
+    auto else_expr = parse_expression();
+    if (!else_expr) return expr_error("Couldn't parse else expression");
+
+    return std::make_shared<IfExprAST>(std::move(cond), std::move(then_expr),
+                                       std::move(else_expr));
   }
 
   // ==========================================================================

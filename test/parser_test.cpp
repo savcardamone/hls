@@ -94,3 +94,22 @@ TEST(ParserTests, TestFunctionDefinitionParsing) {
 
   ASSERT_EQ(*result_b, FunctionAST(prototype_b, func_body_b));
 };
+
+TEST(ParserTests, TestIfExpressionParsing) {
+  using namespace hls;
+
+  auto lhs = std::make_shared<VariableExprAST>("x");
+  auto rhs = std::make_shared<NumberExprAST>(0);
+  auto condition = std::make_shared<BinaryExprAST>('<', lhs, rhs);
+  auto then_expr = std::make_shared<VariableExprAST>("x");
+  auto else_expr = std::make_shared<NumberExprAST>(0);
+  auto body = std::make_shared<IfExprAST>(condition, then_expr, else_expr);
+  auto proto = std::make_shared<PrototypeAST>("", std::vector<std::string>());
+  
+  std::stringstream ifexpr_input("if x < 0 then x else 0;");
+  Lexer ifexpr_lexer(ifexpr_input);
+  Parser parser(ifexpr_lexer);
+  auto result = parser.step();
+
+  ASSERT_EQ(*result, FunctionAST(std::move(proto), std::move(body)));
+};

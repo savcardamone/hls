@@ -287,8 +287,7 @@ void ASTCodegen::function(FunctionAST& ast) {
   }
 
   function_->eraseFromParent();
-  function_ = nullptr;
-  std::cerr << "Function body could not be built.\n";
+  function_error("Function body could not be built.\n");
 }
 
 }  // namespace hls

@@ -95,21 +95,26 @@ TEST(ParserTests, TestFunctionDefinitionParsing) {
   ASSERT_EQ(*result_b, FunctionAST(prototype_b, func_body_b));
 };
 
+/**
+ * @brief Verify that we can parse if expressions properly.
+ */
 TEST(ParserTests, TestIfExpressionParsing) {
   using namespace hls;
 
+  // Note that this will be parsed as a top-level function, so the golden
+  // data will need to compare against likewise
+  std::stringstream ifexpr_input("if x < 0 then x else 0;");
+  Lexer ifexpr_lexer(ifexpr_input);
+  Parser parser(ifexpr_lexer);
+  auto result = parser.step();
+  
   auto lhs = std::make_shared<VariableExprAST>("x");
   auto rhs = std::make_shared<NumberExprAST>(0);
   auto condition = std::make_shared<BinaryExprAST>('<', lhs, rhs);
   auto then_expr = std::make_shared<VariableExprAST>("x");
   auto else_expr = std::make_shared<NumberExprAST>(0);
   auto body = std::make_shared<IfExprAST>(condition, then_expr, else_expr);
-  auto proto = std::make_shared<PrototypeAST>("", std::vector<std::string>());
-  
-  std::stringstream ifexpr_input("if x < 0 then x else 0;");
-  Lexer ifexpr_lexer(ifexpr_input);
-  Parser parser(ifexpr_lexer);
-  auto result = parser.step();
+  auto proto = std::make_shared<PrototypeAST>("", std::vector<std::string>());  
 
   ASSERT_EQ(*result, FunctionAST(std::move(proto), std::move(body)));
 };

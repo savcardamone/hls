@@ -26,6 +26,7 @@ TEST_F(ASTTests, TestNumberExprEquality) {
  */
 TEST_F(ASTTests, TestNumberExprInequality) {
   ASSERT_FALSE(number_expr_ast_ == variable_expr_ast_);
+  ASSERT_FALSE(number_expr_ast_ == if_expr_ast_);
   ASSERT_FALSE(number_expr_ast_ == binary_expr_ast_);
   ASSERT_FALSE(number_expr_ast_ == call_expr_ast_);
   ASSERT_FALSE(number_expr_ast_ == prototype_ast_);
@@ -45,14 +46,40 @@ TEST_F(ASTTests, TestVariableExprEquality) {
 }
 
 /**
- * @brief Test inequality conditions for variable expression with all other ASTs.
+ * @brief Test inequality conditions for variable expression with all other
+ * ASTs.
  */
 TEST_F(ASTTests, TestVariableExprInequality) {
   ASSERT_FALSE(variable_expr_ast_ == number_expr_ast_);
+  ASSERT_FALSE(variable_expr_ast_ == if_expr_ast_);
   ASSERT_FALSE(variable_expr_ast_ == binary_expr_ast_);
   ASSERT_FALSE(variable_expr_ast_ == call_expr_ast_);
   ASSERT_FALSE(variable_expr_ast_ == prototype_ast_);
   ASSERT_FALSE(variable_expr_ast_ == function_ast_);
+}
+
+/**
+ * @brief Test equality conditions for if expressions.
+ *
+ * Verify self-equality, equality with equivalent object and inequality with
+ * a different variable expression.
+ */
+TEST_F(ASTTests, TestIfExprEquality) {
+  ASSERT_TRUE(if_expr_ast_ == if_expr_ast_);
+  ASSERT_TRUE(if_expr_ast_ == if_expr_ast_a_);
+  ASSERT_FALSE(if_expr_ast_ == if_expr_ast_b_);
+}
+
+/**
+ * @brief Test inequality conditions for if expression with all other ASTs.
+ */
+TEST_F(ASTTests, TestIfExprInequality) {
+  ASSERT_FALSE(if_expr_ast_ == variable_expr_ast_);
+  ASSERT_FALSE(if_expr_ast_ == number_expr_ast_);
+  ASSERT_FALSE(if_expr_ast_ == binary_expr_ast_);
+  ASSERT_FALSE(if_expr_ast_ == call_expr_ast_);
+  ASSERT_FALSE(if_expr_ast_ == prototype_ast_);
+  ASSERT_FALSE(if_expr_ast_ == function_ast_);
 }
 
 /**
@@ -73,6 +100,7 @@ TEST_F(ASTTests, TestBinaryExprEquality) {
 TEST_F(ASTTests, TestBinaryExprInequality) {
   ASSERT_FALSE(binary_expr_ast_ == number_expr_ast_);
   ASSERT_FALSE(binary_expr_ast_ == variable_expr_ast_);
+  ASSERT_FALSE(binary_expr_ast_ == if_expr_ast_);
   ASSERT_FALSE(binary_expr_ast_ == call_expr_ast_);
   ASSERT_FALSE(binary_expr_ast_ == prototype_ast_);
   ASSERT_FALSE(binary_expr_ast_ == function_ast_);
@@ -96,6 +124,7 @@ TEST_F(ASTTests, TestCallExprEquality) {
 TEST_F(ASTTests, TestCallExprInequality) {
   ASSERT_FALSE(call_expr_ast_ == number_expr_ast_);
   ASSERT_FALSE(call_expr_ast_ == variable_expr_ast_);
+  ASSERT_FALSE(call_expr_ast_ == if_expr_ast_);
   ASSERT_FALSE(call_expr_ast_ == binary_expr_ast_);
   ASSERT_FALSE(call_expr_ast_ == prototype_ast_);
   ASSERT_FALSE(call_expr_ast_ == function_ast_);
@@ -119,6 +148,7 @@ TEST_F(ASTTests, TestPrototypeEquality) {
 TEST_F(ASTTests, TestPrototypeInequality) {
   ASSERT_FALSE(prototype_ast_ == number_expr_ast_);
   ASSERT_FALSE(prototype_ast_ == variable_expr_ast_);
+  ASSERT_FALSE(prototype_ast_ == if_expr_ast_);
   ASSERT_FALSE(prototype_ast_ == binary_expr_ast_);
   ASSERT_FALSE(prototype_ast_ == call_expr_ast_);
   ASSERT_FALSE(prototype_ast_ == function_ast_);
@@ -142,6 +172,7 @@ TEST_F(ASTTests, TestFunctionEquality) {
 TEST_F(ASTTests, TestFunctionInequality) {
   ASSERT_FALSE(function_ast_ == number_expr_ast_);
   ASSERT_FALSE(function_ast_ == variable_expr_ast_);
+  ASSERT_FALSE(function_ast_ == if_expr_ast_);
   ASSERT_FALSE(function_ast_ == binary_expr_ast_);
   ASSERT_FALSE(function_ast_ == call_expr_ast_);
   ASSERT_FALSE(function_ast_ == prototype_ast_);

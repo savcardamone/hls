@@ -89,6 +89,30 @@ class ASTTests : public ::testing::Test {
                          std::make_shared<hls::BinaryExprAST>(
                              '-', std::make_shared<hls::VariableExprAST>("c"),
                              std::make_shared<hls::VariableExprAST>("d")));
+
+    // ====================================================================
+    //                 Setting up the if expressions
+    // ====================================================================
+    // This is: if x < 0 then 0 else x
+    if_expr_ast_ =
+        hls::IfExprAST(std::make_shared<hls::BinaryExprAST>(
+                           '<', std::make_shared<hls::VariableExprAST>("x"),
+                           std::make_shared<hls::NumberExprAST>(0)),
+                       std::make_shared<hls::NumberExprAST>(0),
+                       std::make_shared<hls::VariableExprAST>("x"));
+    if_expr_ast_a_ =
+        hls::IfExprAST(std::make_shared<hls::BinaryExprAST>(
+                           '<', std::make_shared<hls::VariableExprAST>("x"),
+                           std::make_shared<hls::NumberExprAST>(0)),
+                       std::make_shared<hls::NumberExprAST>(0),
+                       std::make_shared<hls::VariableExprAST>("x"));
+    if_expr_ast_b_ =
+        hls::IfExprAST(std::make_shared<hls::BinaryExprAST>(
+                           '<', std::make_shared<hls::VariableExprAST>("x"),
+                           std::make_shared<hls::NumberExprAST>(1)),
+                       std::make_shared<hls::NumberExprAST>(0),
+                       std::make_shared<hls::VariableExprAST>("x"));
+
   }
 
   /**
@@ -99,6 +123,7 @@ class ASTTests : public ::testing::Test {
   hls::NumberExprAST number_expr_ast_, number_expr_ast_a_, number_expr_ast_b_;
   hls::VariableExprAST variable_expr_ast_, variable_expr_ast_a_,
       variable_expr_ast_b_;
+  hls::IfExprAST if_expr_ast_, if_expr_ast_a_, if_expr_ast_b_;
   hls::BinaryExprAST binary_expr_ast_, binary_expr_ast_a_, binary_expr_ast_b_;
   hls::CallExprAST call_expr_ast_, call_expr_ast_a_, call_expr_ast_b_;
   hls::PrototypeAST prototype_ast_, prototype_ast_a_, prototype_ast_b_;

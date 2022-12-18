@@ -266,6 +266,12 @@ class BinaryExprAST : public ExprAST {
  */
 class IfExprAST : public ExprAST {
  public:
+
+  /**
+   * @brief Empty class constructor.
+   */
+  IfExprAST() : cond_{nullptr}, then_expr_{nullptr}, else_expr_{nullptr} {}
+  
   /**
    * @brief Class constructor.
    * @param cond The condition expression.

@@ -17,6 +17,11 @@
 
 namespace hls {
 
+llvm::Value* ASTCodegen::value(ExprAST& ast) {
+  ast.accept(*this);
+  return value_;
+}
+
 std::ostream& operator<<(std::ostream& os, ASTCodegen& ast_codegen) {
   ast_codegen.module_->print(llvm::outs(), nullptr);
   return os;
@@ -75,15 +80,11 @@ void ASTCodegen::variable_expr(VariableExprAST& ast) {
 void ASTCodegen::binary_expr(BinaryExprAST& ast) {
   // Need to retrieve the LHS and RHS codegen from the ASTCodegen value
   // cache one at a time
-  ast.lhs()->accept(*this);
-  auto lhs = value_;
-  ast.rhs()->accept(*this);
-  auto rhs = value_;
+  llvm::Value* lhs = value(*ast.lhs());
+  llvm::Value* rhs = value(*ast.lhs());
 
   if (!(lhs || rhs)) {
-    std::cerr << "Neither LHS nor RHS could be found.\n";
-    value_ = nullptr;
-    return;
+    return value_error("Neither LHS nor RHS could be found.\n");
   }
   // Create the appropriate IR depending on the binary operator
   switch (ast.op()) {
@@ -108,9 +109,7 @@ void ASTCodegen::binary_expr(BinaryExprAST& ast) {
       break;
     }
     default: {
-      value_ = nullptr;
-      std::cerr << "Unrecognised binary operator.\n";
-      return;
+      return value_error("Unrecognised binary operator.\n");
     }
   }
   if (incremental_print_) {
@@ -121,12 +120,9 @@ void ASTCodegen::binary_expr(BinaryExprAST& ast) {
 
 void ASTCodegen::if_expr(IfExprAST& ast) {
   // First of all we generate the IR for the condition of the if expression
-  ast.cond()->accept(*this);
-  llvm::Value* cond = value_;
+  llvm::Value* cond = value(*ast.cond());
   if (!cond) {
-    value_ = nullptr;
-    std::cerr << "Couldn't generate IR for if-condition.\n";
-    return;
+    return value_error("Couldn't generate IR for if-condition.\n");
   }
 
   // Check whether condition is not-equal to zero
@@ -136,50 +132,68 @@ void ASTCodegen::if_expr(IfExprAST& ast) {
   // Get the function that we're evaluating this control flow in
   llvm::Function* function = builder_->GetInsertBlock()->getParent();
 
-  // Create basic blocks for the two paths
+  // Create basic blocks for the two paths; insert "then" into the function
   llvm::BasicBlock* then_bb =
       llvm::BasicBlock::Create(*context_, "then", function);
-  llvm::BasicBlock* else_bb =
-      llvm::BasicBlock::Create(*context_, "else", function);
-  // Create basic blocks for the merged path once then/else has completed;
+  llvm::BasicBlock* else_bb = llvm::BasicBlock::Create(*context_, "else");
+  // Create basic block for the merged path once then/else has completed;
   // this will have the phi node in it
-  llvm::BasicBlock* merge_bb =
-      llvm::BasicBlock::Create(*context_, "ifcont", function);
+  llvm::BasicBlock* merge_bb = llvm::BasicBlock::Create(*context_, "ifcont");
 
-  // Branch on the condition
+  // Branch on the condition instruction
   builder_->CreateCondBr(cond, then_bb, else_bb);
 
-  // Insert the "then" block IR into the builder
+  // =================================================================
+  //                           THEN block
+  // =================================================================
+
+  // Set our cursor to just after the "then" basic block label
   builder_->SetInsertPoint(then_bb);
-  ast.then_expr()->accept(*this);
-  llvm::Value* then_expr = value_;
+  // Then block codegen
+  llvm::Value* then_expr = value(*ast.then_expr());
   if (!then_expr) {
-    value_ = nullptr;
-    std::cerr << "Couldn't generate IR for then expression.\n";
-    return;
+    return value_error("Couldn't generate IR for then expression.\n");
   }
   // Unconditional branch to the merge block at the end of the "then"
   builder_->CreateBr(merge_bb);
-  // Phi needs entry point for the "then" block when we set it up
+  // Phi needs entry point for the "then" block when we set it up, so just
+  // keep this as a reference for later
   then_bb = builder_->GetInsertBlock();
 
-  // Insert the "else" block IR into the builder
+  // =================================================================
+  //                           ELSE block
+  // =================================================================
+
+  // Insert the "else" basic block label into the function
+  function->getBasicBlockList().push_back(else_bb);
+  // Set our "cursor" to just after then "else" basic block label
   builder_->SetInsertPoint(else_bb);
-  ast.else_expr()->accept(*this);
-  llvm::Value* else_expr = value_;
+  // Else block codegen
+  llvm::Value* else_expr = value(*ast.else_expr());
   if (!else_expr) {
-    value_ = nullptr;
-    std::cerr << "Couldn't generate IR for else expression.\n";
-    return;
+    return value_error("Couldn't generate IR for else expression.\n");
   }
+  // Unconditional branch to the merge block at the end of the "else"
   builder_->CreateBr(merge_bb);
+  // Phi needs entry point for the "else" block when we set it up, so
+  // just keep this as a reference for later
   else_bb = builder_->GetInsertBlock();
 
+  // =================================================================
+  //                           PHI block
+  // =================================================================
+
+  // Insert the "ifcont" merging basic block label into the function
+  function->getBasicBlockList().push_back(merge_bb);
+  // Set our "cursor" to just after the "ifcont" basic block label
   builder_->SetInsertPoint(merge_bb);
+  // Create the phi node with two incoming edges
   llvm::PHINode* phi_node =
       builder_->CreatePHI(llvm::Type::getDoubleTy(*context_), 2, "iftmp");
+  // Add the edges to the phi node
   phi_node->addIncoming(then_expr, then_bb);
   phi_node->addIncoming(else_expr, else_bb);
+  // Cache the phi
   phi_ = phi_node;
 }
 
@@ -188,15 +202,12 @@ void ASTCodegen::call_expr(CallExprAST& ast) {
   // (should already be there from function definition or extern)
   llvm::Function* callee = module_->getFunction(ast.callee());
   if (!callee) {
-    value_ = nullptr;
-    std::cerr << "Function was not found in symbol table.\n";
-    return;
+    return function_error("Function was not found in symbol table.\n");
   }
   if (callee->arg_size() != ast.args().size()) {
-    value_ = nullptr;
-    std::cerr << "Number of arguments in CallExprAST does not match those in "
-                 "symbol table.\n";
-    return;
+    return function_error(
+        "Number of arguments in CallExprAST does not match those in "
+        "symbol table.\n");
   }
 
   std::vector<llvm::Value*> args;
@@ -248,9 +259,7 @@ void ASTCodegen::function(FunctionAST& ast) {
   // Function shouldn't have been defined yet if we've gotten this far; we
   // can't redefine
   if (!function_->empty()) {
-    function_ = nullptr;
-    std::cerr << "Function redefinition.\n";
-    return;
+    return function_error("Function redefinition.\n");
   }
 
   // Create the function basic block

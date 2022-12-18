@@ -11,9 +11,9 @@
 #include <llvm/IR/LegacyPassManager.h>
 #include <llvm/IR/Module.h>
 #include <llvm/IR/Verifier.h>
+#include <llvm/Transforms/InstCombine/InstCombine.h>
 #include <llvm/Transforms/Scalar.h>
 #include <llvm/Transforms/Scalar/GVN.h>
-#include <llvm/Transforms/InstCombine/InstCombine.h>
 
 #include <map>
 #include <ostream>
@@ -22,6 +22,7 @@ namespace hls {
 
 // Forward-declarations of all the AST nodes that our visitors need to
 // manipulate
+class ExprAST;
 class NumberExprAST;
 class VariableExprAST;
 class BinaryExprAST;
@@ -136,6 +137,31 @@ class ASTCodegen : public ASTVisitor {
   llvm::Function* function_;
   llvm::PHINode* phi_;
   friend std::ostream& operator<<(std::ostream& os, ASTCodegen& ast_codegen);
+
+  /**
+   * @brief Helper function to visit the AST and return the cached llvm::Value.
+   * @param ast The AST to visit.
+   * @return The cached llvm::Value.
+   */
+  llvm::Value* value(ExprAST& ast);
+
+  /**
+   * @brief Flush the llvm::Value cache and report an error.
+   * @param msg The message to print to std::cerr.
+   */
+  void value_error(std::string&& msg) {
+    value_ = nullptr;
+    std::cerr << msg;
+  }
+
+  /**
+   * @brief Flush the llvm::Value cache and report an error.
+   * @param msg The message to print to std::cerr.
+   */
+  void function_error(std::string&& msg) {
+    function_ = nullptr;
+    std::cerr << msg;
+  }
 };
 
 }  // namespace hls

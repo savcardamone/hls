@@ -6,6 +6,7 @@
 #ifndef __HLS_AST_VISITOR_HPP
 #define __HLS_AST_VISITOR_HPP
 
+#include <llvm/Pass.h>
 #include <llvm/IR/IRBuilder.h>
 #include <llvm/IR/LLVMContext.h>
 #include <llvm/IR/LegacyPassManager.h>

@@ -266,12 +266,11 @@ class BinaryExprAST : public ExprAST {
  */
 class IfExprAST : public ExprAST {
  public:
-
   /**
    * @brief Empty class constructor.
    */
   IfExprAST() : cond_{nullptr}, then_expr_{nullptr}, else_expr_{nullptr} {}
-  
+
   /**
    * @brief Class constructor.
    * @param cond The condition expression.
@@ -348,6 +347,95 @@ class IfExprAST : public ExprAST {
 
  private:
   std::shared_ptr<ExprAST> cond_, then_expr_, else_expr_;
+};
+
+/**
+ * @brief Expression AST for if-then-else control flow.
+ */
+class ForExprAST : public ExprAST {
+ public:
+  /**
+   * @brief Empty class constructor.
+   */
+  ForExprAST()
+      : loop_var_{""},
+        start_expr_{nullptr},
+        end_expr_{nullptr},
+        step_expr_{nullptr},
+        body_expr_{nullptr} {}
+
+  ForExprAST(const std::string& loop_var, std::shared_ptr<ExprAST> start_expr,
+             std::shared_ptr<ExprAST> end_expr,
+             std::shared_ptr<ExprAST> step_expr,
+             std::shared_ptr<ExprAST> body_expr)
+      : loop_var_{loop_var},
+        start_expr_{std::move(start_expr)},
+        end_expr_{std::move(end_expr)},
+        step_expr_{std::move(step_expr)},
+        body_expr_{std::move(body_expr)} {}
+
+  /**
+   * @brief Overload of the string representation method for the object.
+   * @return String representation of the object.
+   */
+  std::string print() const override {
+    return "ForExprAST: Loop Variable = " + loop_var_ + ", Start = (" +
+           start_expr_->print() + "), End = (" + end_expr_->print() +
+           "), Step = (" + step_expr_->print() + "), Body = (" +
+           body_expr_->print() + ")";
+  }
+
+  std::string loop_var() const { return loop_var_; }
+
+  std::shared_ptr<ExprAST> start_expr() const { return start_expr_; }
+
+  std::shared_ptr<ExprAST> end_expr() const { return end_expr_; }
+
+  std::shared_ptr<ExprAST> step_expr() const { return step_expr_; }
+
+  std::shared_ptr<ExprAST> body_expr() const { return body_expr_; }
+
+  /**
+   * @brief Accept an ASTVisitor instance to manipulate the ForExprAST
+   * object.
+   * @param visitor The visitor to apply to the AST node.
+   */
+  void accept(ASTVisitor& visitor) override { visitor.for_expr(*this); }
+
+  /**
+   * @brief Equality overload.
+   *
+   * Attempt to cast RHS to a ForExprAST and perform equality check. If we
+   * get a bad cast, then the other AST isn't a ForExprAST, and consequently
+   * not equal to the LHS.
+   * @param rhs The RHS of the equality condition.
+   * @return True if equal, false otherwise.
+   */
+  bool operator==(const AST& rhs) const override {
+    try {
+      auto recast_rhs = dynamic_cast<const ForExprAST&>(rhs);
+      return *this == recast_rhs;
+    } catch (std::bad_cast&) {
+      return false;
+    }
+  }
+
+  /**
+   * @brief Equality overload for two ForExprAST objects.
+   * @param rhs The RHS ForExprAST of the equality condition.
+   * @return True if equal, false otherwise.
+   */
+  bool operator==(const ForExprAST& rhs) const {
+    return (
+        (loop_var_ == rhs.loop_var_) && (*start_expr_ == *rhs.start_expr_) &&
+        (*end_expr_ == *rhs.end_expr_) && (*step_expr_ == *rhs.step_expr_) &&
+        (*body_expr_ == *rhs.body_expr_));
+  }
+
+ private:
+  std::string loop_var_;
+  std::shared_ptr<ExprAST> start_expr_, end_expr_, step_expr_;
+  std::shared_ptr<ExprAST> body_expr_;
 };
 
 /**

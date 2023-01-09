@@ -159,6 +159,8 @@ class Parser {
         return parse_number_expr();
       case TokenType::tok_if:
         return parse_if_expr();
+      case TokenType::tok_for:
+        return parse_for_expr();
       case TokenType::tok_operator:
         if (current_token_.value() == "(") return parse_parentheses_expr();
     }
@@ -279,6 +281,69 @@ class Parser {
 
     return std::make_shared<IfExprAST>(std::move(cond), std::move(then_expr),
                                        std::move(else_expr));
+  }
+
+  /**
+   * @brief Parse looping for-in expression.
+   * @return The for-expression AST node.
+   */
+  std::shared_ptr<ExprAST> parse_for_expr() {
+    // Eat the "for"
+    next_token();
+
+    // Need variable identifier for start of loop
+    if (current_token_.type() != TokenType::tok_identifier) {
+      return expr_error("Expected identifier after for.");
+    }
+    // Eat the loop variable
+    std::string loop_var_name = current_token_.value();
+    next_token();
+
+    if (current_token_.value() != "=") {
+      return expr_error("Expected = after loop variable.");
+    }
+    next_token();
+
+    // Parse the expression for the loop variable initialisation
+    auto start_condition = parse_expression();
+    if (!start_condition)
+      return expr_error("Was not able to parse loop variable initialisation.");
+
+    if (current_token_.value() != ",") {
+      return expr_error(
+          "Expected comma between start and end loop variable expressions.");
+    }
+    next_token();
+
+    // Parse the expression for the loop variable finishing state
+    auto end_condition = parse_expression();
+    if (!end_condition)
+      return expr_error("Was not able to parse loop variable finalisation.");
+
+    // Optional step value for the loop
+    std::shared_ptr<ExprAST> step_condition;
+    if (current_token_.value() == ",") {
+      next_token();
+      step_condition = parse_expression();
+      if (!step_condition) {
+        return expr_error("Erroneously parsed for-loop step.");
+      }
+    }
+
+    // Eat the "in"
+    if (current_token_.type() != TokenType::tok_in) {
+      return expr_error("Expected in token after for loop definition.");
+    }
+    next_token();
+
+    // Parse the for-loop body
+    auto body = parse_expression();
+    if (!body) return expr_error("Failed to parse for-loop body.");
+
+    // Return the for-loop AST
+    return std::make_shared<ForExprAST>(
+        loop_var_name, std::move(start_condition), std::move(end_condition),
+        std::move(step_condition), std::move(body));
   }
 
   // ==========================================================================

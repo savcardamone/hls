@@ -29,7 +29,10 @@ enum class TokenType {
   // Control
   tok_if,    //< If condition
   tok_then,  //< Execute if condition true
-  tok_else   //< Execute if condition false
+  tok_else,  //< Execute if condition false
+  // Loop
+  tok_for,  //< For loop begin
+  tok_in    //< Terminator for for-loop range
 };
 
 /**
@@ -74,6 +77,14 @@ static std::ostream& operator<<(std::ostream& os, const TokenType& type) {
     }
     case TokenType::tok_else: {
       os << "Token Type: Else";
+      break;
+    }
+    case TokenType::tok_for: {
+      os << "Token Type: For";
+      break;
+    }
+    case TokenType::tok_in: {
+      os << "Token Type: In";
       break;
     }
     default:
@@ -180,6 +191,10 @@ class Lexer {
         return Token(TokenType::tok_then);
       } else if (identifier_string == "else") {
         return Token(TokenType::tok_else);
+      } else if (identifier_string == "for") {
+	return Token(TokenType::tok_for);
+      } else if (identifier_string == "in") {
+	return Token(TokenType::tok_in);
       }
       // If the token wasn't a keyword, it was an identifier
       return Token(TokenType::tok_identifier, identifier_string);

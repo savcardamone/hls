@@ -6,12 +6,12 @@
 #ifndef __HLS_AST_VISITOR_HPP
 #define __HLS_AST_VISITOR_HPP
 
-#include <llvm/Pass.h>
 #include <llvm/IR/IRBuilder.h>
 #include <llvm/IR/LLVMContext.h>
 #include <llvm/IR/LegacyPassManager.h>
 #include <llvm/IR/Module.h>
 #include <llvm/IR/Verifier.h>
+#include <llvm/Pass.h>
 #include <llvm/Transforms/InstCombine/InstCombine.h>
 #include <llvm/Transforms/Scalar.h>
 #include <llvm/Transforms/Scalar/GVN.h>
@@ -28,6 +28,7 @@ class NumberExprAST;
 class VariableExprAST;
 class BinaryExprAST;
 class IfExprAST;
+class ForExprAST;
 class CallExprAST;
 class PrototypeAST;
 class FunctionAST;
@@ -57,6 +58,11 @@ class ASTVisitor {
    * @brief Manipulate a IfExprAST node.
    */
   virtual void if_expr(IfExprAST&) = 0;
+
+  /**
+   * @brief Manipulate a ForExprAST node.
+   */
+  virtual void for_expr(ForExprAST&) = 0;
 
   /**
    * @brief Manipulate a CallExprAST node.
@@ -103,10 +109,16 @@ class ASTCodegen : public ASTVisitor {
   void binary_expr(BinaryExprAST& ast) override;
 
   /**
-   * @brief Generate the LLVM IR for a BinaryExprAST node.
+   * @brief Generate the LLVM IR for a IfExprAST node.
    * @param ast The AST to generate IR for.
    */
   void if_expr(IfExprAST& ast) override;
+
+  /**
+   * @brief Generate the LLVM IR for a ForExprAST node.
+   * @param ast The AST to generate IR for.
+   */
+  void for_expr(ForExprAST& ast) override;
 
   /**
    * @brief Generate the LLVM IR for a CallExprAST node.

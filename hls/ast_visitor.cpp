@@ -198,9 +198,89 @@ void ASTCodegen::if_expr(IfExprAST& ast) {
 }
 
 void ASTCodegen::for_expr(ForExprAST& ast) {
+  // Start value expression for the loop variable
+  llvm::Value* start_val = value(*ast.start_expr());
+  if (!start_val)
+    return value_error("Couldn't generate code for for-loop start.");
 
+  // Get the function that we're evaluating this control flow in
+  llvm::Function* function = builder_->GetInsertBlock()->getParent();
+  // Create the new basic block for the loop header, inserting after current
+  // block
+  // Pre
+  llvm::BasicBlock* preheader_bb = builder_->GetInsertBlock();
+  llvm::BasicBlock* loop_bb =
+      llvm::BasicBlock::Create(*context_, "loop", function);
+
+  // Branch to the loop basic block
+  builder_->CreateBr(loop_bb);
+  // Move to the loop basic block for next code insertions
+  builder_->SetInsertPoint(loop_bb);
+
+  // Loop variable phi has two input edges; either the starting value
+  // or updated variable after loop iteration. Here we add the start
+  // value; we don't have the "backedge" yet, so will add that later
+  llvm::PHINode* loop_var_phi = builder_->CreatePHI(
+      llvm::Type::getDoubleTy(*context_), 2, ast.loop_var().c_str());
+  loop_var_phi->addIncoming(start_val, preheader_bb);
+
+  // Check whether we're shadowing a variable that's already in-scope;
+  // back it up with a temporary
+  llvm::Value* old_value = named_values_[ast.loop_var()];
+  named_values_[ast.loop_var()] = loop_var_phi;
+
+  if (!value(*ast.body_expr()))
+    return value_error("Couldn't generate code for loop body.");
+
+  // Handle the loop step; recall that this is an optional argument in the
+  // for-loop, and defaults to 1
+  llvm::Value* step_val = nullptr;
+  if (ast.step_expr()) {
+    step_val = value(*ast.step_expr());
+    if (!step_val) return value_error("Couldn't generate code for loop step.");
+  } else {
+    step_val = llvm::ConstantFP::get(*context_, llvm::APFloat(1.0));
+  }
+  // Now we add the step to the PHI output to get the next iteration's
+  // loop variable
+  llvm::Value* next_val =
+      builder_->CreateFAdd(loop_var_phi, step_val, "next_loop_idx");
+
+  // Generate code for the end condition and perform a check to see whether
+  // we're at the end of the loop or not
+  llvm::Value* end_cond = value(*ast.end_expr());
+  if (!end_cond)
+    return value_error("Couldn't generate code for loop end expression.");
+  end_cond = builder_->CreateFCmpONE(
+      end_cond, llvm::ConstantFP::get(*context_, llvm::APFloat(0.0)),
+      "loop_condition");
+
+  // Get the basic block we're inserting the loop-end evaluation into
+  llvm::BasicBlock* loop_end_bb = builder_->GetInsertBlock();
+  // Create a new basic block we can branch to at the end of the loop
+  llvm::BasicBlock* after_loop_bb =
+      llvm::BasicBlock::Create(*context_, "after_loop", function);
+
+  // Conditional branch at the end of loop_end_bb; either go back to loop_bb
+  // or go to after_bb
+  builder_->CreateCondBr(end_cond, loop_bb, after_loop_bb);
+
+  // Now move onto the after_bb basic block to terminate the loop
+  builder_->SetInsertPoint(after_loop_bb);
+  // Backedge of the phi node used to increment the loop variable
+  loop_var_phi->addIncoming(next_val, loop_end_bb);
+
+  // Restore the unshadowed variable
+  if (old_value) {
+    named_values_[ast.loop_var()] = old_value;
+  } else {
+    named_values_.erase(ast.loop_var());
+  }
+
+  // for-expression just returns zero
+  value_ = llvm::Constant::getNullValue(llvm::Type::getDoubleTy(*context_));
 }
-  
+
 void ASTCodegen::call_expr(CallExprAST& ast) {
   // Check whether the function name exists or not in our symbol table
   // (should already be there from function definition or extern)

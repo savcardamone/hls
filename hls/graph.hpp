@@ -49,7 +49,7 @@ class Edge {
   vptr src_, dest_;
   int weight;
 };
-  
+
 /**
  * @brief A Graph in adjacency list form. Wraps vertices and edges, and permits
  * operation on the Graph through the visitor pattern.
@@ -65,7 +65,7 @@ class Graph {
    * @brief Accept a GraphVisitor instance to manipulate the Graph object.
    * @param visitor The GraphVisitor object.
    */
-  //void accept(GraphVisitor& visitor) { visitor.process(*this); }
+  // void accept(GraphVisitor& visitor) { visitor.process(*this); }
 
   /**
    * @brief Add a Vertex to the Graph. Will ensure no equivalent Vertex has

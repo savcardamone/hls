@@ -10,4 +10,4 @@ cmake \
     -DCMAKE_C_COMPILER="/usr/local/bin/clang" -DCMAKE_CXX_COMPILER="/usr/local/bin/clang++" \
     -S . -B build
 cmake --build build
-cd build/test && ctest --verbose
+ctest --test-dir test --verbose

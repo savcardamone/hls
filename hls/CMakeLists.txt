@@ -4,7 +4,7 @@ llvm_map_components_to_libnames(llvm_libs
   Core ScalarOpts
   )
 
-add_library(hls STATIC ast_visitor.cpp)
+add_library(hls STATIC ast_visitor.cpp graph_visitor.cpp)
 # Project headers are included publically while LLVM is private
 target_include_directories(hls
   PUBLIC ${PROJECT_SOURCE_DIR}
